@@ -12,6 +12,8 @@ from itsdangerous import URLSafeTimedSerializer
 from email.mime.text import MIMEText
 import bcrypt
 
+# --------------------------------------------------------------------------------------------------------------------------------------------
+
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
 
