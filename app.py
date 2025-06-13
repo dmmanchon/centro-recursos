@@ -41,7 +41,7 @@ SMTP_USER = "tu@correo.com"
 SMTP_PASS = "tu-contraseña"
 
 def send_recovery_email(destino_email, token):
-    recover_url = st.get_url() + f"?token={token}"
+    recover_url = f"https://centro-recursos.streamlit.app/?token={token}"
     html = f"""
     <p>Hola,</p>
     <p>Haz clic <a href="{recover_url}">aquí</a> para restablecer tu contraseña. El enlace expirará en 30 min.</p>
