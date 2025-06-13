@@ -12,12 +12,10 @@ from itsdangerous import URLSafeTimedSerializer
 from email.mime.text import MIMEText
 import bcrypt
 
-# --------------------------------------------------------------------------------------------------------------------------------------------
-
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
 
-# --- LOGO Y TÍTULO ---
+# --- LOGO Y TÍTULO --
 logo_path = Path("assets/logo.png")
 if logo_path.exists():
     logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
