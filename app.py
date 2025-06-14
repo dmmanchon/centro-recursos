@@ -55,7 +55,7 @@ def send_recovery_email(mail_destino, token):
         f"Haz clic en el siguiente enlace para restablecer tu contraseña:\n\n{recover_url}"
     )
     mensaje["Subject"] = "🔐 Recuperación de contraseña"
-    mensaje["From"] = SMTP_USER
+    mensaje["From"] = "Centro de Recursos <david.martin.manchon@gmail.com>" 
     mensaje["To"] = mail_destino
 
     try:
