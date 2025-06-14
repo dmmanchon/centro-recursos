@@ -46,6 +46,8 @@ SALT = "salt-recovery"
 serializer = URLSafeTimedSerializer(SECRET_KEY)
 
 def send_recovery_email(mail_destino, token):
+    import smtplib
+    from email.mime.text import MIMEText
 
     recover_url = f"{APP_URL}/?token={token}"
 
@@ -65,7 +67,6 @@ def send_recovery_email(mail_destino, token):
         st.success("✅ Enlace de recuperación enviado al correo electrónico.")
     except Exception as e:
         st.error(f"❌ Error al enviar el correo: {e}")
-
 
 params = st.query_params
 token_param = params.get("token", [None])[0]
