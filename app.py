@@ -12,6 +12,16 @@ from itsdangerous import URLSafeTimedSerializer
 from email.mime.text import MIMEText
 import bcrypt
 
+# Configuración del servidor SMTP (correo)
+SMTP_SERVER = st.secrets["SMTP_SERVER"]
+SMTP_PORT = st.secrets["SMTP_PORT"]
+SMTP_USER = st.secrets["SMTP_USER"]
+SMTP_PASS = st.secrets["SMTP_PASS"]
+
+# URL base para enlaces de recuperación
+APP_URL = st.secrets["APP_URL"]
+
+
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
 
@@ -35,26 +45,27 @@ SECRET_KEY = "TU_SECRETO_MUY_LARGO"
 SALT = "salt-recovery"
 serializer = URLSafeTimedSerializer(SECRET_KEY)
 
-SMTP_SERVER = "smtp.tu-servidor.com"
-SMTP_PORT = 587
-SMTP_USER = "tu@correo.com"
-SMTP_PASS = "tu-contraseña"
+def send_recovery_email(mail_destino, token):
 
-def send_recovery_email(destino_email, token):
-    recover_url = f"https://centro-recursos.streamlit.app/?token={token}"
-    html = f"""
-    <p>Hola,</p>
-    <p>Haz clic <a href="{recover_url}">aquí</a> para restablecer tu contraseña. El enlace expirará en 30 min.</p>
-    """
-    msg = MIMEText(html, "html")
-    msg["Subject"] = "Recuperación de contraseña"
-    msg["From"] = SMTP_USER
-    msg["To"] = destino_email
+    recover_url = f"{APP_URL}/?token={token}"
 
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(msg)
+    mensaje = MIMEText(
+        f"Haz clic en el siguiente enlace para restablecer tu contraseña:\n\n{recover_url}"
+    )
+    mensaje["Subject"] = "🔐 Recuperación de contraseña"
+    mensaje["From"] = SMTP_USER
+    mensaje["To"] = mail_destino
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.send_message(mensaje)
+
+        st.success("✅ Enlace de recuperación enviado al correo electrónico.")
+    except Exception as e:
+        st.error(f"❌ Error al enviar el correo: {e}")
+
 
 params = st.query_params
 token_param = params.get("token", [None])[0]
