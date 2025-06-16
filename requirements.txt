@@ -4,3 +4,4 @@ bcrypt
 itsdangerous
 openpyxl
 azure-storage-blob
+Pillow
