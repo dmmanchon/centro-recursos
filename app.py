@@ -14,12 +14,13 @@ import bcrypt
 from azure.storage.blob import BlobServiceClient
 from io import BytesIO
 
-# RESUMEN APP
-# Streamlit Cloud para desplegar la app desarrollada en python con el entorno Visual Code (C:\Users\david\Documents\Streamlit\Albacete) (https://share.streamlit.io/)
-# GitHub ... (https://github.com/dmmanchon/centro-recursos)
+# RESUMEN de Herramientas y Servicios de la APP
+# Visual Studio Code para programar en python el código de la app (C:\Users\david\Documents\Streamlit\Albacete)
+# Streamlit Cloud para hospedar la app (https://share.streamlit.io/)
+# GitHub para el despliegue de la app (https://github.com/dmmanchon/centro-recursos)
 # Dominio creado en Microsoft @autoanalyzerpro.com para poder enviar enlaces de recuperación desde Mailjet y cuenta de Almacenamiento (https://admin.microsoft.com/?login_hint=autoanalyzerpro%40autoanalyzerpro.com&source=applauncher#/Domains/Details/autoanalyzerpro.com)
 # Azure Blob Storage de Microsoft para el almacenamiento de archivos (https://portal.azure.com/#@autoanalyzerpro.com/resource/subscriptions/31d6b443-05de-4364-8ae6-c879d9350f7b/resourcegroups/app-recursos/providers/Microsoft.Storage/storageAccounts/recursoscentro1/containersList)
-# Mailjet para enviar enlaces de recuperación (https://app.mailjet.com/onboarding)
+# Mailjet para enviar enlaces de recuperación automáticos (https://app.mailjet.com/onboarding)
 
 # Configuración de Azure Blob Storage desde secrets
 AZURE_CONNECTION_STRING = st.secrets["AZURE_CONNECTION_STRING"]
@@ -42,23 +43,24 @@ st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
 
 # --- LOGO Y TÍTULO --
-logo_path = Path("assets/logo.png")
-if logo_path.exists():
-    try:
-        logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
-        st.markdown(
-            f"""
-            <div style='text-align: center;'>
-                <img src='data:image/png;base64,{logo_base64}' style='height: 200px;' />
-                <h1>Centro de Recursos Colaborativo</h1>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    except Exception as e:
-        st.warning(f"No se pudo cargar el logo: {e}")
-else:
-    st.title("Centro de Recursos Colaborativo")
+if "usuario" not in st.session_state:
+    logo_path = Path("assets/logo.png")
+    if logo_path.exists():
+        try:
+            logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
+            st.markdown(
+                f"""
+                <div style='text-align: center;'>
+                    <img src='data:image/png;base64,{logo_base64}' style='height: 200px;' />
+                    <h1>Centro de Recursos Colaborativo</h1>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        except Exception as e:
+            st.warning(f"No se pudo cargar el logo: {e}")
+    else:
+        st.title("Centro de Recursos Colaborativo")
 
 
 # ---------- AUTENTICACIÓN ----------
