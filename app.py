@@ -14,6 +14,13 @@ import bcrypt
 from azure.storage.blob import BlobServiceClient
 from io import BytesIO
 
+# RESUMEN APP
+# Streamlit Cloud para desplegar la app desarrollada en python con el entorno Visual Code (C:\Users\david\Documents\Streamlit\Albacete) (https://share.streamlit.io/)
+# GitHub ... (https://github.com/dmmanchon/centro-recursos)
+# Dominio creado en Microsoft @autoanalyzerpro.com para poder enviar enlaces de recuperación desde Mailjet y cuenta de Almacenamiento (https://admin.microsoft.com/?login_hint=autoanalyzerpro%40autoanalyzerpro.com&source=applauncher#/Domains/Details/autoanalyzerpro.com)
+# Azure Blob Storage de Microsoft para el almacenamiento de archivos (https://portal.azure.com/#@autoanalyzerpro.com/resource/subscriptions/31d6b443-05de-4364-8ae6-c879d9350f7b/resourcegroups/app-recursos/providers/Microsoft.Storage/storageAccounts/recursoscentro1/containersList)
+# Mailjet para enviar enlaces de recuperación (https://app.mailjet.com/onboarding)
+
 # Configuración de Azure Blob Storage desde secrets
 AZURE_CONNECTION_STRING = st.secrets["AZURE_CONNECTION_STRING"]
 AZURE_CONTAINER_NAME = "archivos-app"
@@ -82,7 +89,7 @@ def send_recovery_email(mail_destino, token):
         f"Haz clic en el siguiente enlace para restablecer tu contraseña:\n\n{recover_url}"
     )
     mensaje["Subject"] = "🔐 Recuperación de contraseña"
-    mensaje["From"] = "Centro de Recursos <noreply@autoanalyzer.com>"
+    mensaje["From"] = f"Centro de Recursos <{st.secrets['EMAIL_FROM']}>"
     mensaje["To"] = mail_destino
 
     try:
