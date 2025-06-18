@@ -130,6 +130,22 @@ if token_param:
 
 # --- LOGIN ---
 usuarios_df = cargar_usuarios_desde_blob()
+
+# Inicializar cookies con clave secreta desde st.secrets
+cookies = EncryptedCookieManager(
+    prefix="app_",
+    password=st.secrets["SECRET_KEY"]
+)
+if not cookies.ready():
+    st.stop()
+
+# Si no hay usuario en sesión pero sí en cookies, restaurar
+if "usuario" not in st.session_state and cookies.get("usuario"):
+    st.session_state.usuario = cookies.get("usuario")
+    st.session_state.area = cookies.get("area")
+    st.session_state.permisos = cookies.get("permisos").split(",")
+    st.session_state.rol = cookies.get("rol")
+
 if "usuario" not in st.session_state:
     cols = st.columns([1, 2, 1])
     with cols[1]:
@@ -145,11 +161,11 @@ if "usuario" not in st.session_state:
             user_row = usuarios_df[usuarios_df["mail"] == usuario_input]
             if (not user_row.empty and
                 bcrypt.checkpw(contrasena_input.encode(), user_row.iloc[0]["contraseña"].encode())):
+
                 st.session_state.usuario = user_row.iloc[0]["usuario"]
                 st.session_state.area = user_row.iloc[0]["area"]
                 st.session_state.permisos = user_row.iloc[0]["permisos"].split(",")
                 st.session_state.rol = user_row.iloc[0]["rol"]
-                st.rerun()
 
                 # Guardar también en cookies
                 cookies["usuario"] = st.session_state.usuario
@@ -157,6 +173,8 @@ if "usuario" not in st.session_state:
                 cookies["permisos"] = ",".join(st.session_state.permisos)
                 cookies["rol"] = st.session_state.rol
                 cookies.save()
+
+                st.rerun()
 
             else:
                 st.error("Credenciales incorrectas")
@@ -174,23 +192,6 @@ if "usuario" not in st.session_state:
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.stop()
-
-
-# GESTIÓN DE SESIÓN CON COOKIES (recordar login entre visitas)
-# Inicializar cookies con clave secreta desde st.secrets
-cookies = EncryptedCookieManager(
-    prefix="app_",
-    password=st.secrets["SECRET_KEY"]
-)
-if not cookies.ready():
-    st.stop()
-
-# Si no hay usuario en sesión pero sí en cookies, restaurar
-if "usuario" not in st.session_state and cookies.get("usuario"):
-    st.session_state.usuario = cookies.get("usuario")
-    st.session_state.area = cookies.get("area")
-    st.session_state.permisos = cookies.get("permisos").split(",")
-    st.session_state.rol = cookies.get("rol")
 
 # Botón de logout (borrar cookies + sesión)
 if st.sidebar.button("Cerrar sesión"):
