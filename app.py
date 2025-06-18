@@ -43,26 +43,6 @@ APP_URL = st.secrets["APP_URL"]
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
 
-# --- LOGO Y TÍTULO --
-if "usuario" not in st.session_state:
-    logo_path = Path("assets/logo.png")
-    if logo_path.exists():
-        try:
-            logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
-            st.markdown(
-                f"""
-                <div style='text-align: center;'>
-                    <img src='data:image/png;base64,{logo_base64}' style='height: 200px;' />
-                    <h1>Centro de Recursos Colaborativo</h1>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        except Exception as e:
-            st.warning(f"No se pudo cargar el logo: {e}")
-    else:
-        st.title("Centro de Recursos Colaborativo")
-
 
 # ---------- AUTENTICACIÓN ----------
 # --- Configuración de tokens y correo ---
@@ -145,6 +125,28 @@ if "usuario" not in st.session_state and cookies.get("usuario"):
     st.session_state.area = cookies.get("area")
     st.session_state.permisos = cookies.get("permisos").split(",")
     st.session_state.rol = cookies.get("rol")
+
+# --- LOGO Y TÍTULO --
+if "usuario" not in st.session_state and not cookies.get("usuario"):
+    logo_path = Path("assets/logo.png")
+    if logo_path.exists():
+        try:
+            logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
+            st.markdown(
+                f"""
+                <div style='text-align: center;'>
+                    <img src='data:image/png;base64,{logo_base64}' style='height: 200px;' />
+                    <h1>Centro de Recursos Colaborativo</h1>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        except Exception as e:
+            st.warning(f"No se pudo cargar el logo: {e}")
+    else:
+        st.title("Centro de Recursos Colaborativo")
+
+# ...
 
 if "usuario" not in st.session_state:
     cols = st.columns([1, 2, 1])
