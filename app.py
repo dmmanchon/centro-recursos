@@ -41,6 +41,7 @@ APP_URL = st.secrets["APP_URL"]
 
 # --- Configuración general de la app ---
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide", initial_sidebar_state="expanded")
+st.sidebar.markdown("&nbsp;")  # fuerza a mostrarlo
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
 
 
