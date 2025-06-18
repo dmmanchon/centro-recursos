@@ -251,11 +251,6 @@ if logo_path.exists():
 st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
 st.sidebar.success(f"{usuario_actual} ({rol})")
 
-# ---------- BOTÓN DE CIERRE DE SESIÓN ----------
-if st.sidebar.button("Cerrar sesión"):
-    st.session_state.clear()
-    st.rerun()
-
 # ---------- SELECCIÓN DE ÁREA (si tiene acceso total) ----------
 if area_original == "todas":
     st.sidebar.markdown("---")
