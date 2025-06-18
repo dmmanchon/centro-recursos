@@ -41,7 +41,6 @@ APP_URL = st.secrets["APP_URL"]
 
 # --- Configuración general de la app ---
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide", initial_sidebar_state="expanded")
-st.sidebar.markdown("&nbsp;")  # fuerza a mostrarlo
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
 
 
@@ -130,7 +129,6 @@ if "usuario" not in st.session_state and cookies.get("usuario"):
 if "logout" in st.session_state:
     del st.session_state["logout"]
     st.stop()  
-
 
 # --- LOGO Y TÍTULO --
 if "usuario" not in st.session_state and not cookies.get("usuario"):
@@ -225,6 +223,10 @@ area_map = {
 }
 
 # ---------- LOGO Y TEMPORADA EN LA PARTE SUPERIOR DEL SIDEBAR ----------
+
+if "usuario" in st.session_state:
+    st.sidebar.markdown("&nbsp;")  # fuerza a mostrarlo solo si hay sesión
+
 logo_path = Path("assets/logo.png")
 if logo_path.exists():
     logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
