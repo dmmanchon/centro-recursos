@@ -5,3 +5,4 @@ itsdangerous
 openpyxl
 azure-storage-blob
 Pillow
+streamlit-cookies-manager
