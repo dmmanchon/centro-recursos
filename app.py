@@ -43,41 +43,6 @@ APP_URL = st.secrets["APP_URL"]
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
 
-# GESTIÓN DE SESIÓN CON COOKIES (recordar login entre visitas)
-# Inicializar cookies con clave secreta desde st.secrets
-cookies = EncryptedCookieManager(
-    prefix="app_",
-    password=st.secrets["SECRET_KEY"]
-)
-if not cookies.ready():
-    st.stop()
-
-# Si no hay usuario en sesión pero sí en cookies, restaurar
-if "usuario" not in st.session_state and cookies.get("usuario"):
-    st.session_state.usuario = cookies.get("usuario")
-    st.session_state.area = cookies.get("area")
-    st.session_state.permisos = cookies.get("permisos").split(",")
-    st.session_state.rol = cookies.get("rol")
-
-# Bloque de login existente
-if "usuario" not in st.session_state:
-    # Mostrar formulario de login...
-    # Tras login exitoso:
-    if login_exitoso:
-        cookies["usuario"] = st.session_state.usuario
-        cookies["area"] = st.session_state.area
-        cookies["permisos"] = ",".join(st.session_state.permisos)
-        cookies["rol"] = st.session_state.rol
-        cookies.save()
-        st.rerun()
-
-# Botón de logout (borrar cookies + sesión)
-if st.sidebar.button("Cerrar sesión"):
-    for key in ["usuario", "area", "permisos", "rol"]:
-        cookies.delete(key)
-    st.session_state.clear()
-    st.rerun()
-
 # --- LOGO Y TÍTULO --
 if "usuario" not in st.session_state:
     logo_path = Path("assets/logo.png")
@@ -201,6 +166,58 @@ if "usuario" not in st.session_state:
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.stop()
+
+
+# GESTIÓN DE SESIÓN CON COOKIES (recordar login entre visitas)
+# Inicializar cookies con clave secreta desde st.secrets
+cookies = EncryptedCookieManager(
+    prefix="app_",
+    password=st.secrets["SECRET_KEY"]
+)
+if not cookies.ready():
+    st.stop()
+
+# Si no hay usuario en sesión pero sí en cookies, restaurar
+if "usuario" not in st.session_state and cookies.get("usuario"):
+    st.session_state.usuario = cookies.get("usuario")
+    st.session_state.area = cookies.get("area")
+    st.session_state.permisos = cookies.get("permisos").split(",")
+    st.session_state.rol = cookies.get("rol")
+
+# Formulario login
+st.subheader("🔐 Iniciar sesión")
+usuario_input = st.text_input("Correo electrónico")
+contrasena_input = st.text_input("Contraseña", type="password")
+
+if st.button("Acceder"):
+    user_row = usuarios_df[usuarios_df["mail"] == usuario_input]
+    if (not user_row.empty and
+        bcrypt.checkpw(contrasena_input.encode(),
+                       user_row.iloc[0]["contraseña"].encode())):
+
+        # Guardar información de usuario en sesión
+        st.session_state.usuario = user_row.iloc[0]["usuario"]
+        st.session_state.area = user_row.iloc[0]["area"]
+        st.session_state.permisos = user_row.iloc[0]["permisos"].split(",")
+        st.session_state.rol = user_row.iloc[0]["rol"]
+
+        # Guardar también en cookies
+        cookies["usuario"] = st.session_state.usuario
+        cookies["area"] = st.session_state.area
+        cookies["permisos"] = ",".join(st.session_state.permisos)
+        cookies["rol"] = st.session_state.rol
+        cookies.save()
+
+        st.rerun()
+    else:
+        st.error("Credenciales incorrectas")
+
+# Botón de logout (borrar cookies + sesión)
+if st.sidebar.button("Cerrar sesión"):
+    for key in ["usuario", "area", "permisos", "rol"]:
+        cookies.delete(key)
+    st.session_state.clear()
+    st.rerun()
 
 
 # ---------- VARIABLES DE SESIÓN ----------
