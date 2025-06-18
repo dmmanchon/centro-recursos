@@ -204,11 +204,10 @@ if "usuario" not in st.session_state:
 if "usuario" in st.session_state:
     if st.sidebar.button("Cerrar sesión"):
         for key in ["usuario", "area", "permisos", "rol"]:
-            if key in cookies:
-                cookies.delete(key)
+            cookies[key] = ""
         cookies.save()
         st.session_state.clear()
-        st.session_state["logout"] = True 
+        st.session_state["logout"] = True
         st.rerun()
 
 # ---------- VARIABLES DE SESIÓN ----------
