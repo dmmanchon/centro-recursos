@@ -40,7 +40,7 @@ SMTP_PASS = st.secrets["SMTP_PASS"]
 APP_URL = st.secrets["APP_URL"]
 
 # --- Configuración general de la app ---
-st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
+st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide", initial_sidebar_state="expanded")
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
 
 
