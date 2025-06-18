@@ -126,6 +126,11 @@ if "usuario" not in st.session_state and cookies.get("usuario"):
     st.session_state.permisos = cookies.get("permisos").split(",")
     st.session_state.rol = cookies.get("rol")
 
+if "logout" in st.session_state:
+    del st.session_state["logout"]
+    st.stop()  
+
+
 # --- LOGO Y TÍTULO --
 if "usuario" not in st.session_state and not cookies.get("usuario"):
     logo_path = Path("assets/logo.png")
@@ -201,10 +206,11 @@ if "usuario" in st.session_state:
         for key in ["usuario", "area", "permisos", "rol"]:
             if key in cookies:
                 del cookies[key]
+        forzar_logout = True
         cookies.save()
         st.session_state.clear()
+        st.session_state["logout"] = True  # ⬅ Flag temporal
         st.rerun()
-
 
 # ---------- VARIABLES DE SESIÓN ----------
 usuario_actual = st.session_state.usuario
