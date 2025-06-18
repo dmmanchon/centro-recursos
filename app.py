@@ -196,11 +196,12 @@ if "usuario" not in st.session_state:
     st.stop()
 
 # Botón de logout (borrar cookies + sesión)
-if st.sidebar.button("Cerrar sesión"):
-    for key in ["usuario", "area", "permisos", "rol"]:
-        cookies.delete(key)
-    st.session_state.clear()
-    st.rerun()
+if "usuario" in st.session_state:
+    if st.sidebar.button("Cerrar sesión"):
+        for key in ["usuario", "area", "permisos", "rol"]:
+            cookies.delete(key)
+        st.session_state.clear()
+        st.rerun()
 
 # ---------- VARIABLES DE SESIÓN ----------
 usuario_actual = st.session_state.usuario
