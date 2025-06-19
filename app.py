@@ -466,7 +466,7 @@ for chunk in chunks:
                 st.download_button("📥 Descargar Archivo", data=contenido, file_name=blob_path.name)
 
             comentario = st.text_area("💬 Comentario", value=meta.get("comentario", ""), key=f"comentario_{blob_name}")
-            if st.button("💾 Guardar comentario", key=f"guardar_comentario_{blob_name}"):
+            if st.button("💾 Actualizar comentario", key=f"guardar_comentario_{blob_name}"):
                 meta["comentario"] = comentario
                 meta_str = json.dumps(meta, ensure_ascii=False)
                 subir_a_blob(blob_name + ".meta.json", meta_str.encode("utf-8"))
