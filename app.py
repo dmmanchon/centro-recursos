@@ -474,3 +474,6 @@ if "subir" in permisos and st.button("Guardar enlace"):
         nuevo_contenido = contenido_actual + f"{nombre_url}::{url}\n"
         subir_a_blob(enlaces_blob, nuevo_contenido.encode("utf-8"))
         st.success("✅ Enlace guardado correctamente.")
+        st.rerun()
+
+
