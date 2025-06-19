@@ -343,39 +343,6 @@ def eliminar_blob(nombre_archivo):
     blob_client.delete_blob()
 
 
-def mostrar_pdf(contenido_pdf):
-    try:
-        base64_pdf = base64.b64encode(contenido_pdf).decode('utf-8')
-        pdf_display = f"""
-            <iframe 
-                src="data:application/pdf;base64,{base64_pdf}" 
-                width="100%" 
-                height="800" 
-                type="application/pdf"
-                style="border: none;"
-            >
-            </iframe>
-        """
-        st.markdown(pdf_display, unsafe_allow_html=True)
-    except Exception as e:
-        st.error("No se pudo mostrar el PDF.")
-        st.exception(e)
-
-
-def mostrar_excel(contenido_excel, extension):
-    import pandas as pd
-    from io import BytesIO
-
-    try:
-        if extension == ".csv":
-            df = pd.read_csv(BytesIO(contenido_excel))
-        else:
-            df = pd.read_excel(BytesIO(contenido_excel), engine="openpyxl")
-        st.dataframe(df)
-    except Exception as e:
-        st.error("No se pudo mostrar el contenido del archivo.")
-        st.exception(e)
-
 # ---------- SUBIDA DE ARCHIVOS ----------
 if "subir" in permisos:
     st.markdown("### 📤 Subida de archivos")
@@ -464,10 +431,8 @@ for chunk in chunks:
             contenido = descargar_blob(blob_name)
             if suffix == ".pdf":
                 st.download_button("📥 Descargar PDF", data=contenido, file_name=blob_path.name)
-                mostrar_pdf(contenido)
             elif suffix in [".xlsx", ".xls", ".csv"]:
                 st.download_button("📥 Descargar Excel/CSV", data=contenido, file_name=blob_path.name)
-                mostrar_excel(contenido, suffix)
             elif suffix in [".mp4", ".mov"]:
                 st.download_button("📥 Descargar Vídeo", data=contenido, file_name=blob_path.name)
                 st.video(contenido)
