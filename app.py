@@ -381,9 +381,9 @@ st.markdown("### 📁 Archivos disponibles")
 # ---------- CONTROLES DE VISTA ----------
 col1, col2 = st.columns(2)
 with col1:
-    orden = st.selectbox("Ordenar por", ["Más recientes", "Más antiguos", "Nombre A-Z", "Nombre Z-A"])
+    orden = st.selectbox("Ordenar por", ["Más recientes", "Más antiguos", "Nombre A-Z", "Nombre Z-A"],index=0)
 with col2:
-    vista = st.selectbox("Vista", ["1 columna", "2 columnas", "3 columnas"])
+    vista = st.selectbox("Vista", ["1 columna", "2 columnas", "3 columnas"],index=2)
     num_cols = int(vista.split()[0])
 
 # Aplicar orden
