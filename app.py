@@ -342,13 +342,25 @@ def eliminar_blob(nombre_archivo):
     blob_client = container_client.get_blob_client(nombre_archivo)
     blob_client.delete_blob()
 
+
 def mostrar_pdf(contenido_pdf):
-    import base64
-    base64_pdf = base64.b64encode(contenido_pdf).decode('utf-8')
-    pdf_display = f"""
-        <iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="600" type="application/pdf"></iframe>
-    """
-    st.markdown(pdf_display, unsafe_allow_html=True)
+    try:
+        base64_pdf = base64.b64encode(contenido_pdf).decode('utf-8')
+        pdf_display = f"""
+            <iframe 
+                src="data:application/pdf;base64,{base64_pdf}" 
+                width="100%" 
+                height="800" 
+                type="application/pdf"
+                style="border: none;"
+            >
+            </iframe>
+        """
+        st.markdown(pdf_display, unsafe_allow_html=True)
+    except Exception as e:
+        st.error("No se pudo mostrar el PDF.")
+        st.exception(e)
+
 
 def mostrar_excel(contenido_excel, extension):
     import pandas as pd
