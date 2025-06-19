@@ -476,4 +476,15 @@ if "subir" in permisos and st.button("Guardar enlace"):
         st.success("✅ Enlace guardado correctamente.")
         st.rerun()
 
-
+# Leer y mostrar enlaces compartidos desde azure
+enlaces_blob = f"{azure_prefix}enlaces.txt"
+try:
+    enlaces_bytes = container_client.get_blob_client(enlaces_blob).download_blob().readall()
+    for line in enlaces_bytes.decode("utf-8").splitlines():
+        try:
+            nombre, enlace = line.strip().split("::")
+            st.markdown(f"- 🔗 [{nombre}]({enlace})")
+        except:
+            continue
+except:
+    st.info("No hay enlaces aún.")
