@@ -438,7 +438,7 @@ for chunk in chunks:
                 st.video(contenido)
             elif suffix in [".jpg", ".jpeg", ".png", ".gif"]:
                 st.download_button("📥 Descargar Imagen", data=contenido, file_name=blob_path.name)
-                st.image(contenido, use_column_width=True)
+                st.image(contenido, use_container_width=True)
             else:
                 st.download_button("📥 Descargar Archivo", data=contenido, file_name=blob_path.name)
 
