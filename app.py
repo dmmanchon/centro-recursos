@@ -69,13 +69,13 @@ def guardar_usuarios_en_blob(df):
     blob_client.upload_blob(stream, overwrite=True)
 
 def send_recovery_email(mail_destino, token):
-    recover_url = f"{APP_URL}/?token={urllib.parse.quote(token)}"
-    print("📤 Enlace enviado:", recover_url)
+    token_codificado = urllib.parse.quote(token)
+    recover_url = f"{APP_URL}/?token={token_codificado}"
     mensaje = MIMEText(
-        f"Haz clic en el siguiente enlace para restablecer tu contraseña:\n\n{recover_url}"
+        f"Haz clic en el siguiente enlace para restablecer tu contraseña:\n\n<{recover_url}>"
     )
     mensaje["Subject"] = "🔐 Recuperación de contraseña"
-    mensaje["From"] = f"Centro de Recursos <{st.secrets['EMAIL_FROM']}>"
+    mensaje["From"] = "Centro de Recursos <noreply@autoanalyzer.com>"
     mensaje["To"] = mail_destino
 
     try:
@@ -86,6 +86,7 @@ def send_recovery_email(mail_destino, token):
         st.success("✅ Enlace de recuperación enviado al correo electrónico.")
     except Exception as e:
         st.error(f"❌ Error al enviar el correo: {e}")
+
 
 # --- Procesar token desde URL ---
 params = st.query_params
