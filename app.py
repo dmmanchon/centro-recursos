@@ -75,7 +75,7 @@ def send_recovery_email(mail_destino, token):
         f"Haz clic en el siguiente enlace para restablecer tu contraseña:\n\n<{recover_url}>"
     )
     mensaje["Subject"] = "🔐 Recuperación de contraseña"
-    mensaje["From"] = "Centro de Recursos <noreply@autoanalyzer.com>"
+    mensaje["From"] = "Centro de Recursos <noreply@autoanalyzerpro.com>"
     mensaje["To"] = mail_destino
 
     try:
