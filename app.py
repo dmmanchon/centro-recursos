@@ -14,6 +14,7 @@ import bcrypt
 from azure.storage.blob import BlobServiceClient
 from io import BytesIO
 from streamlit_cookies_manager import EncryptedCookieManager
+from itsdangerous.exc import SignatureExpired, BadSignature
 
 # RESUMEN de Herramientas y Servicios de la APP
 # Visual Studio Code para programar en python el código de la app (C:\Users\david\Documents\Streamlit\Albacete)
@@ -88,10 +89,14 @@ def send_recovery_email(mail_destino, token):
 params = st.query_params
 token_param = params.get("token", [None])[0]
 if token_param:
+
     try:
         email = serializer.loads(token_param, salt=SALT, max_age=1800)
-    except Exception:
-        st.error("Enlace inválido o caducado.")
+    except SignatureExpired:
+        st.error("❌ Este enlace ha caducado. Solicita uno nuevo.")
+        st.stop()
+    except BadSignature:
+        st.error("❌ El enlace no es válido. Asegúrate de copiarlo completo desde el correo.")
         st.stop()
 
     st.subheader("🔑 Restablecer contraseña")
