@@ -70,6 +70,7 @@ def guardar_usuarios_en_blob(df):
 
 def send_recovery_email(mail_destino, token):
     recover_url = f"{APP_URL}/?token={urllib.parse.quote(token)}"
+    print("📤 Enlace enviado:", recover_url)
     mensaje = MIMEText(
         f"Haz clic en el siguiente enlace para restablecer tu contraseña:\n\n{recover_url}"
     )
@@ -93,6 +94,8 @@ if token_param:
 
     try:
         token_param = urllib.parse.unquote(token_param)
+        st.write("🔍 Token recibido:", token_param)
+        st.write("🔍 Token original (codificado):", params.get("token", [None])[0])
         email = serializer.loads(token_param, salt=SALT, max_age=1800)
     except SignatureExpired:
         st.error("❌ Este enlace ha caducado. Solicita uno nuevo.")
