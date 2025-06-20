@@ -192,7 +192,6 @@ if "usuario" not in st.session_state:
             if mail_recup in usuarios_df["mail"].values:
                 token = serializer.dumps(mail_recup, salt=SALT)
                 send_recovery_email(mail_recup, token)
-                st.success("Correo de recuperación enviado. Revisa tu bandeja.")
             else:
                 st.error("Correo no registrado.")
         st.markdown("</div>", unsafe_allow_html=True)
@@ -383,7 +382,7 @@ col1, col2 = st.columns(2)
 with col1:
     orden = st.selectbox("Ordenar por", ["Más recientes", "Más antiguos", "Nombre A-Z", "Nombre Z-A"],index=0)
 with col2:
-    vista = st.selectbox("Vista", ["1 columna", "2 columnas", "3 columnas"],index=2)
+    vista = st.selectbox("Vista", ["1 columna", "2 columnas", "3 columnas"],index=1)
     num_cols = int(vista.split()[0])
 
 # Aplicar orden
