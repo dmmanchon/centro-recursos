@@ -202,6 +202,7 @@ if "usuario" not in st.session_state:
         if st.button("Enviar enlace de recuperación"):
             if mail_recup in usuarios_df["mail"].values:
                 token = serializer.dumps(mail_recup, salt=SALT)
+                st.write("🔑 Token generado:", token)  # <- esto confirmará si entra al envío
                 send_recovery_email(mail_recup, token)
             else:
                 st.error("Correo no registrado.")
