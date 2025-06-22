@@ -45,11 +45,18 @@ APP_URL = st.secrets["APP_URL"]
 # --- Configuración general de la app ---
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
+st.markdown("""
+    <script>
+    window.onload = function() {
+        const btn = window.parent.document.querySelector('button[title="Expandir sidebar"]');
+        if (btn) { btn.click(); }
+    }
+    </script>
+""", unsafe_allow_html=True)
 
 
 # ---------- AUTENTICACIÓN ----------
 # --- Configuración de tokens y correo ---
-# --- Autenticación ---
 
 SECRET_KEY = st.secrets["SECRET_KEY"]
 SALT = "salt-recovery"
@@ -125,21 +132,6 @@ if token_param:
         st.error("❌ Enlace inválido. Asegúrate de copiarlo completo desde tu correo.")
         st.error(f"Detalles del error de firma: {e}")
         st.stop()
-
-    # Mostrar formulario de nueva contraseña
-    # st.subheader("🔑 Restablecer contraseña")
-    # nueva     = st.text_input("Nueva contraseña",     type="password")
-    # confirmar = st.text_input("Confirmar contraseña", type="password")
-    # if st.button("Cambiar contraseña"):
-    #     if nueva and nueva == confirmar:
-    #         hashed = bcrypt.hashpw(nueva.encode(), bcrypt.gensalt()).decode()
-    #         usuarios_df = cargar_usuarios_desde_blob()
-    #         usuarios_df.loc[usuarios_df["mail"] == email, "contraseña"] = hashed
-    #         guardar_usuarios_en_blob(usuarios_df)
-    #         st.success("🔄 Contraseña actualizada. Por favor vuelve a iniciar sesión.")
-    #     else:
-    #         st.error("❌ Las contraseñas no coinciden.")
-    # st.stop()
 
     # Mostrar formulario de nueva contraseña
     cols = st.columns([1, 2, 1])
