@@ -68,9 +68,19 @@ def guardar_usuarios_en_blob(df):
     stream.seek(0)
     blob_client.upload_blob(stream, overwrite=True)
 
+# CAMBIOS
+# CAMBIOS
+# CAMBIOS
+# CAMBIOS
+# CAMBIOS
+
 def send_recovery_email(mail_destino, token):
-    token_codificado = urllib.parse.quote(token)
+    token_bytes = token.encode("utf-8")
+    token_codificado = base64.urlsafe_b64encode(token_bytes).decode("utf-8")
     recover_url = f"{APP_URL}/?token={token_codificado}"
+
+    #token_codificado = urllib.parse.quote(token)
+    #recover_url = f"{APP_URL}/?token={token_codificado}"
     mensaje = MIMEText(
         f"Haz clic en el siguiente enlace para restablecer tu contraseña:\n\n<{recover_url}>"
     )
@@ -87,7 +97,6 @@ def send_recovery_email(mail_destino, token):
     except Exception as e:
         st.error(f"❌ Error al enviar el correo: {e}")
 
-
 # --- Procesar token desde URL ---
 params = st.query_params
 st.write("📥 Raw query string completa:", params)
@@ -102,10 +111,15 @@ st.write("🔍 Token recibido sin decodificar:", token_param)
 
 if token_param:
     try:
-        token_param = urllib.parse.unquote(token_param)
-        st.write("🔍 Token recibido:", token_param)
-        st.write("🔍 Token original (codificado):", params.get("token", [None])[0])
-        email = serializer.loads(token_param, salt=SALT, max_age=1800)
+        token_bytes = base64.urlsafe_b64decode(token_param.encode("utf-8"))
+        token = token_bytes.decode("utf-8")
+        st.write("🔍 Token decodificado:", token)
+        email = serializer.loads(token, salt=SALT, max_age=1800)
+
+        #token_param = urllib.parse.unquote(token_param)
+        #st.write("🔍 Token recibido:", token_param)
+        #st.write("🔍 Token original (codificado):", params.get("token", [None])[0])
+        #email = serializer.loads(token_param, salt=SALT, max_age=1800)
     except SignatureExpired:
         st.error("❌ Este enlace ha caducado. Solicita uno nuevo.")
         st.stop()
