@@ -120,12 +120,10 @@ token_param = params.get("token", [None])[0]
 
 if token_param:
     try:
-        # Asegurarnos de decodificar cualquier %20, etc.
-        token = urllib.parse.unquote(token_param)
-        email = serializer.loads(token, salt=SALT, max_age=1800)
+        # El token ya es seguro para URL, lo usamos directamente
+        email = serializer.loads(token_param, salt=SALT, max_age=1800)
     except SignatureExpired:
         st.error("❌ Este enlace ha caducado. Solicita uno nuevo.")
-        st.stop()
     except BadSignature:
         st.error("❌ Enlace inválido. Asegúrate de copiarlo completo desde tu correo.")
         st.stop()
@@ -229,8 +227,7 @@ if "usuario" not in st.session_state:
             
             if mail_recup in usuarios_df["mail"].values:
                 token = serializer.dumps(mail_recup, salt=SALT)
-                token_codificado = urllib.parse.quote(token) 
-                send_recovery_email(mail_recup, token_codificado)
+                send_recovery_email(mail_recup, token)
             else:
                 st.error("Correo no registrado.")
         st.markdown("</div>", unsafe_allow_html=True)
