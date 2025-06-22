@@ -45,6 +45,16 @@ APP_URL = st.secrets["APP_URL"]
 # --- Configuración general de la app ---
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
+st.markdown("""
+    <style>
+    [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
+        display: block;
+        position: relative;
+        left: 0;
+        visibility: visible;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 # ---------- AUTENTICACIÓN ----------
 # --- Configuración de tokens y correo ---
@@ -176,15 +186,6 @@ if "usuario" not in st.session_state and not cookies.get("usuario"):
     if logo_path.exists():
         try:
             logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
-            # st.markdown(
-            #     f"""
-            #     <div style='text-align: center;'>
-            #         <img src='data:image/png;base64,{logo_base64}' style='height: 200px;' />
-            #         <h1>Centro de Recursos Colaborativo</h1>
-            #     </div>
-            #     """,
-            #     unsafe_allow_html=True
-            # )
             st.markdown(
                 f"""
                 <div style='text-align: center; margin-top: -2rem; margin-bottom: 1rem;'>
