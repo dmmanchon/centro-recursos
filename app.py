@@ -74,46 +74,33 @@ def guardar_usuarios_en_blob(df):
 # CAMBIOS
 
 def send_recovery_email(mail_destino, token):
-    token_codificado = token
-    recover_url = f"{APP_URL}?token={token_codificado}"
-
-    # Mensaje multipart/alternative: texto + HTML
-    mensaje = MIMEMultipart("alternative")
-    mensaje["Subject"] = "🔐 Recuperación de contraseña"
-    mensaje["From"]    = "Centro de Recursos <noreply@autoanalyzerpro.com>"
-    mensaje["To"]      = mail_destino
-
-    texto_plano = (
-        "Hola,\n\n"
-        "Visita este enlace para restablecer tu contraseña:\n"
-        f"{recover_url}\n\n"
-        "Si no solicitaste este correo, ignóralo."
-    )
-
+    recover_url = f"{APP_URL}?token={token}"
     html = f"""
     <html>
       <body>
         <p>Hola,</p>
-        <p>Para restablecer tu contraseña, haz clic aquí:<br>
-           <a href="{recover_url}">Restablecer contraseña</a>
+        <p>Para restablecer tu contraseña, haz clic en el siguiente botón:</p>
+        <p>
+          <a href="{recover_url}" style="padding:10px 15px;
+             background:#007bff; color:white; text-decoration:none;
+             border-radius:4px;">
+            Restablecer contraseña
+          </a>
         </p>
-        <p>Si no solicitaste este correo, ignóralo.</p>
+        <p>Si no solicitaste este correo, puedes ignorarlo.</p>
       </body>
     </html>
     """
+    mensaje = MIMEText(html, "html", "utf-8")
+    mensaje["Subject"] = "🔐 Recuperación de contraseña"
+    mensaje["From"]    = "Centro de Recursos <noreply@autoanalyzerpro.com>"
+    mensaje["To"]      = mail_destino
 
-    mensaje.attach(MIMEText(texto_plano, "plain"))
-    mensaje.attach(MIMEText(html,       "html"))
-
-    try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASS)
-            server.send_message(mensaje)
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.send_message(mensaje)
         st.success("✅ Enlace de recuperación enviado al correo electrónico.")
-    except Exception as e:
-        st.error(f"❌ Error al enviar el correo: {e}")
-
 
 # --- Procesar token desde URL ---
 params      = st.query_params
@@ -127,7 +114,7 @@ if token_param:
         st.error("❌ Este enlace ha caducado. Solicita uno nuevo.")
         st.stop()
     except BadSignature:
-        st.error("❌ El enlace no es válido. Asegúrate de copiarlo completo desde el correo.")
+        st.error("❌ El enlace no es válido.")
         st.stop()
 
     st.subheader("🔑 Restablecer contraseña")
