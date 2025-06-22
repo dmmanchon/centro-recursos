@@ -94,9 +94,11 @@ st.write("📥 Raw query string completa:", params)
 token_param = params.get("token", [None])[0]
 st.write("🔍 Token recibido sin decodificar:", token_param)
 
-
-
-
+# CAMBIOS
+# CAMBIOS
+# CAMBIOS
+# CAMBIOS
+# CAMBIOS
 
 if token_param:
     try:
