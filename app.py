@@ -176,11 +176,20 @@ if "usuario" not in st.session_state and not cookies.get("usuario"):
     if logo_path.exists():
         try:
             logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
+            # st.markdown(
+            #     f"""
+            #     <div style='text-align: center;'>
+            #         <img src='data:image/png;base64,{logo_base64}' style='height: 200px;' />
+            #         <h1>Centro de Recursos Colaborativo</h1>
+            #     </div>
+            #     """,
+            #     unsafe_allow_html=True
+            # )
             st.markdown(
                 f"""
-                <div style='text-align: center;'>
-                    <img src='data:image/png;base64,{logo_base64}' style='height: 200px;' />
-                    <h1>Centro de Recursos Colaborativo</h1>
+                <div style='text-align: center; margin-top: -2rem; margin-bottom: 1rem;'>
+                    <img src='data:image/png;base64,{logo_base64}' style='height: 100px;' />
+                    <h1 style='font-size: 1.8rem; margin-top: 0.5rem;'>Centro de Recursos Colaborativo</h1>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -194,16 +203,9 @@ if "usuario" not in st.session_state and not cookies.get("usuario"):
 
 if "usuario" not in st.session_state:
     cols = st.columns([1, 2, 1])
-    # with cols[1]:
-    #     st.markdown("""<div style='padding: 2rem; background-color: #fafafa;
-    #                     border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);'>""",
-    #                 unsafe_allow_html=True)
-
     with cols[1]:
-        st.markdown("""<div style='padding: 1rem 2rem; margin-top: -2rem;
-                        background-color: #fafafa;
-                        border-radius: 10px;
-                        box-shadow: 2px 2px 10px rgba(0,0,0,0.1);'>""",
+        st.markdown("""<div style='padding: 2rem; background-color: #fafafa;
+                        border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);'>""",
                     unsafe_allow_html=True)
 
         st.subheader("🔐 Iniciar sesión")
