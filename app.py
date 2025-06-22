@@ -262,7 +262,7 @@ area_map = {
     "Servicios Médicos": "servicios_medicos"
 }
 
-# ---------- LOGO Y TEMPORADA EN LA PARTE SUPERIOR DEL SIDEBAR ----------
+# - Sidebar visible con logo y temporada
 
 if "usuario" in st.session_state:
     st.markdown("""
@@ -273,9 +273,6 @@ if "usuario" in st.session_state:
             width: 250px !important;
             transform: none !important;
             visibility: visible !important;
-        }
-        [data-testid="collapsedControl"] {
-            display: none !important;
         }
         </style>
         """, unsafe_allow_html=True)
