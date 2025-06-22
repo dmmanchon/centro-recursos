@@ -43,8 +43,15 @@ SMTP_PASS = st.secrets["SMTP_PASS"]
 APP_URL = st.secrets["APP_URL"]
 
 # --- Configuración general de la app ---
-st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
+st.set_page_config(
+    page_title="Centro de Recursos Colaborativo",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+#st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
+
 
 # ---------- AUTENTICACIÓN ----------
 # --- Configuración de tokens y correo ---
@@ -193,7 +200,20 @@ if "usuario" not in st.session_state and not cookies.get("usuario"):
 # ...
 
 if "usuario" not in st.session_state:
+    # Oculta el sidebar en la pantalla de login
+    st.markdown("""
+        <style>
+        [data-testid="stSidebar"] {
+            display: none;
+        }
+        [data-testid="collapsedControl"] {
+            display: none;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
     cols = st.columns([1, 2, 1])
+    
     with cols[1]:
         st.markdown("""<div style='padding: 2rem; background-color: #fafafa;
                         border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);'>""",
@@ -262,20 +282,9 @@ area_map = {
     "Servicios Médicos": "servicios_medicos"
 }
 
-# - Sidebar visible con logo y temporada
+# - Sidebar con logo y temporada
 
 if "usuario" in st.session_state:
-    st.markdown("""
-        <style>
-        [data-testid="stSidebar"] {
-            min-width: 250px !important;
-            max-width: 250px !important;
-            width: 250px !important;
-            transform: none !important;
-            visibility: visible !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
     st.sidebar.markdown("&nbsp;") 
 
 logo_path = Path("assets/logo.png")
