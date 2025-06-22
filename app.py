@@ -9,6 +9,7 @@ import base64
 import re
 import smtplib
 from itsdangerous import URLSafeTimedSerializer
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import bcrypt
 from azure.storage.blob import BlobServiceClient
@@ -75,14 +76,32 @@ def guardar_usuarios_en_blob(df):
 # CAMBIOS
 
 def send_recovery_email(mail_destino, token):
-    token_codificado = urllib.parse.quote(token)
-    recover_url = f"{APP_URL}/?token={token_codificado}"
-    mensaje = MIMEText(
-        f"Haz clic en el siguiente enlace para restablecer tu contraseña:\n\n<{recover_url}>"
-    )
+    token_codificado = urllib.parse.quote(token, safe='')
+    recover_url = f"{APP_URL}?token={token_codificado}"
+
+    # Crea un email multipart para texto + HTML
+    mensaje = MIMEMultipart("alternative")
     mensaje["Subject"] = "🔐 Recuperación de contraseña"
-    mensaje["From"] = "Centro de Recursos <noreply@autoanalyzerpro.com>"
-    mensaje["To"] = mail_destino
+    mensaje["From"]    = "Centro de Recursos <noreply@autoanalyzerpro.com>"
+    mensaje["To"]      = mail_destino
+
+    texto_plano = (
+        f"Haz clic en este enlace para restablecer tu contraseña:\n\n"
+        f"{recover_url}\n\n"
+        "Si no solicitaste este correo, ignóralo."
+    )
+    html = f"""
+    <html>
+      <body>
+        <p>Haz clic en este enlace para restablecer tu contraseña:<br>
+           <a href="{recover_url}">Restablecer contraseña</a>
+        </p>
+        <p>Si no solicitaste este correo, ignóralo.</p>
+      </body>
+    </html>
+    """
+    mensaje.attach(MIMEText(texto_plano, "plain"))
+    mensaje.attach(MIMEText(html,       "html"))
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
@@ -95,16 +114,13 @@ def send_recovery_email(mail_destino, token):
 
 # --- Procesar token desde URL ---
 params = st.query_params
-st.write("📥 Raw query string completa:", params)
 token_param = params.get("token", [None])[0]
-st.write("🔍 Token recibido sin decodificar:", token_param)
 
 if token_param:
+    # dispara sólo si realmente hay algo
+    token_decodificado = urllib.parse.unquote(token_param)
     try:
-        token_param = urllib.parse.unquote(token_param)
-        st.write("🔍 Token recibido:", token_param)
-        st.write("🔍 Token original (codificado):", params.get("token", [None])[0])
-        email = serializer.loads(token_param, salt=SALT, max_age=1800)
+        email = serializer.loads(token_decodificado, salt=SALT, max_age=1800)
     except SignatureExpired:
         st.error("❌ Este enlace ha caducado. Solicita uno nuevo.")
         st.stop()
