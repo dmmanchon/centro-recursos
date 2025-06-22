@@ -116,22 +116,21 @@ def send_recovery_email(mail_destino: str, token: str):
 
 # --- Procesar token desde URL ---
 params      = st.query_params
-token_param = params.get("token", [None])[0]
+token_param = params.get("token")
 
 if token_param:
-    # --- INICIO DE DEPURACIÓN ---
+    # Mantenemos la depuración para confirmar que ahora sí llega completo
     st.info(f"Token recibido de la URL para depuración: `{token_param}`")
-    # --- FIN DE DEPURACIÓN ---
     try:
-        # El token ya es seguro para URL, lo usamos directamente
         email = serializer.loads(token_param, salt=SALT, max_age=1800)
+        # Si la validación es exitosa, quitamos el mensaje de depuración
+        st.success("Token validado correctamente. Procede a cambiar tu contraseña.")
+
     except SignatureExpired:
         st.error("❌ Este enlace ha caducado. Solicita uno nuevo.")
     except BadSignature as e:
         st.error("❌ Enlace inválido. Asegúrate de copiarlo completo desde tu correo.")
-        # --- INICIO DE DEPURACIÓN ---
         st.error(f"Detalles del error de firma: {e}")
-        # --- FIN DE DEPURACIÓN ---
         st.stop()
 
     # Mostrar formulario de nueva contraseña
