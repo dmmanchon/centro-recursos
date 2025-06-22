@@ -69,10 +69,6 @@ def guardar_usuarios_en_blob(df):
     stream.seek(0)
     blob_client.upload_blob(stream, overwrite=True)
 
-# CAMBIOS
-# CAMBIOS
-# CAMBIOS
-
 def send_recovery_email(mail_destino: str, token: str):
     # El token ya está en formato URL-safe, no lo volvemos a codificar
     recover_url = f"{APP_URL}?token={token}"
@@ -119,8 +115,7 @@ params      = st.query_params
 token_param = params.get("token")
 
 if token_param:
-    # Mantenemos la depuración para confirmar que ahora sí llega completo
-    st.info(f"Token recibido de la URL para depuración: `{token_param}`")
+
     try:
         email = serializer.loads(token_param, salt=SALT, max_age=1800)
         # Si la validación es exitosa, quitamos el mensaje de depuración
