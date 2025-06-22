@@ -72,34 +72,36 @@ def guardar_usuarios_en_blob(df):
 # CAMBIOS
 # CAMBIOS
 # CAMBIOS
-# CAMBIOS
-# CAMBIOS
 
 def send_recovery_email(mail_destino, token):
-    token_codificado = urllib.parse.quote(token, safe='')
+    token_codificado = token
     recover_url = f"{APP_URL}?token={token_codificado}"
 
-    # Crea un email multipart para texto + HTML
+    # Mensaje multipart/alternative: texto + HTML
     mensaje = MIMEMultipart("alternative")
     mensaje["Subject"] = "🔐 Recuperación de contraseña"
     mensaje["From"]    = "Centro de Recursos <noreply@autoanalyzerpro.com>"
     mensaje["To"]      = mail_destino
 
     texto_plano = (
-        f"Haz clic en este enlace para restablecer tu contraseña:\n\n"
+        "Hola,\n\n"
+        "Visita este enlace para restablecer tu contraseña:\n"
         f"{recover_url}\n\n"
         "Si no solicitaste este correo, ignóralo."
     )
+
     html = f"""
     <html>
       <body>
-        <p>Haz clic en este enlace para restablecer tu contraseña:<br>
+        <p>Hola,</p>
+        <p>Para restablecer tu contraseña, haz clic aquí:<br>
            <a href="{recover_url}">Restablecer contraseña</a>
         </p>
         <p>Si no solicitaste este correo, ignóralo.</p>
       </body>
     </html>
     """
+
     mensaje.attach(MIMEText(texto_plano, "plain"))
     mensaje.attach(MIMEText(html,       "html"))
 
@@ -112,15 +114,15 @@ def send_recovery_email(mail_destino, token):
     except Exception as e:
         st.error(f"❌ Error al enviar el correo: {e}")
 
+
 # --- Procesar token desde URL ---
-params = st.query_params
+params      = st.query_params
 token_param = params.get("token", [None])[0]
 
 if token_param:
-    # dispara sólo si realmente hay algo
-    token_decodificado = urllib.parse.unquote(token_param)
+    token_limpio = urllib.parse.unquote(token_param)
     try:
-        email = serializer.loads(token_decodificado, salt=SALT, max_age=1800)
+        email = serializer.loads(token_limpio, salt=SALT, max_age=1800)
     except SignatureExpired:
         st.error("❌ Este enlace ha caducado. Solicita uno nuevo.")
         st.stop()
@@ -226,14 +228,8 @@ if "usuario" not in st.session_state:
             
             if mail_recup in usuarios_df["mail"].values:
                 token = serializer.dumps(mail_recup, salt=SALT)
-                token_codificado = urllib.parse.quote(token)  # ✅ Añadir esta línea
-
-                st.write("🔐 Token generado:", token)
-                st.write("🔐 Token codificado:", token_codificado)
-
+                token_codificado = urllib.parse.quote(token) 
                 send_recovery_email(mail_recup, token)
-
-
             else:
                 st.error("Correo no registrado.")
         st.markdown("</div>", unsafe_allow_html=True)
