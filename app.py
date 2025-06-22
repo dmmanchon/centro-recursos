@@ -73,19 +73,11 @@ def guardar_usuarios_en_blob(df):
 # CAMBIOS
 # CAMBIOS
 
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import smtplib
-
-# --- Configuración global ---
-serializer = URLSafeTimedSerializer(SECRET_KEY)
-
-def send_recovery_email(mail_destino, token):
-    # 1) El token ya es url-safe: no lo codificamos de nuevo
+def send_recovery_email(mail_destino: str, token: str):
+    # El token ya está en formato URL-safe, no lo volvemos a codificar
     recover_url = f"{APP_URL}?token={token}"
 
-    # 2) Montamos un correo multipart (texto+HTML)
+    # Construir correo multipart (texto + HTML)
     texto_plano = (
         "Hola,\n\n"
         "Para restablecer tu contraseña copia o haz clic en el siguiente enlace:\n\n"
@@ -97,9 +89,9 @@ def send_recovery_email(mail_destino, token):
       <p>Hola,</p>
       <p>Para restablecer tu contraseña, pulsa este botón:</p>
       <p><a href="{recover_url}"
-            style="display:inline-block;padding:8px 12px;
-                   background:#007bff;color:#fff;text-decoration:none;
-                   border-radius:4px;">
+            style="display:inline-block;padding:10px 15px;
+                   background-color:#007bff;color:#ffffff;
+                   text-decoration:none;border-radius:4px;">
           Restablecer contraseña
       </a></p>
       <p>Si no fuiste tú, ignora este mensaje.</p>
@@ -118,7 +110,7 @@ def send_recovery_email(mail_destino, token):
             server.starttls()
             server.login(SMTP_USER, SMTP_PASS)
             server.send_message(msg)
-        st.success("✅ Enlace de recuperación enviado.")
+        st.success("✅ Enlace de recuperación enviado correctamente.")
     except Exception as e:
         st.error(f"❌ Error al enviar correo: {e}")
 
@@ -128,16 +120,19 @@ token_param = params.get("token", [None])[0]
 
 if token_param:
     try:
-        email = serializer.loads(token_param, salt=SALT, max_age=1800)
+        # Asegurarnos de decodificar cualquier %20, etc.
+        token = urllib.parse.unquote(token_param)
+        email = serializer.loads(token, salt=SALT, max_age=1800)
     except SignatureExpired:
-        st.error("❌ Este enlace ha caducado.")
+        st.error("❌ Este enlace ha caducado. Solicita uno nuevo.")
         st.stop()
     except BadSignature:
-        st.error("❌ Enlace inválido. Cópialo completo desde tu correo.")
+        st.error("❌ Enlace inválido. Asegúrate de copiarlo completo desde tu correo.")
         st.stop()
 
+    # Mostrar formulario de nueva contraseña
     st.subheader("🔑 Restablecer contraseña")
-    nueva = st.text_input("Nueva contraseña", type="password")
+    nueva     = st.text_input("Nueva contraseña",     type="password")
     confirmar = st.text_input("Confirmar contraseña", type="password")
     if st.button("Cambiar contraseña"):
         if nueva and nueva == confirmar:
@@ -145,9 +140,9 @@ if token_param:
             usuarios_df = cargar_usuarios_desde_blob()
             usuarios_df.loc[usuarios_df["mail"] == email, "contraseña"] = hashed
             guardar_usuarios_en_blob(usuarios_df)
-            st.success("Contraseña actualizada. Vuelve al login.")
+            st.success("🔄 Contraseña actualizada. Por favor vuelve a iniciar sesión.")
         else:
-            st.error("Las contraseñas no coinciden.")
+            st.error("❌ Las contraseñas no coinciden.")
     st.stop()
 
 # --- LOGIN ---
