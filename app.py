@@ -45,16 +45,6 @@ APP_URL = st.secrets["APP_URL"]
 # --- Configuración general de la app ---
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
-st.markdown("""
-    <style>
-    [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
-        display: block;
-        position: relative;
-        left: 0;
-        visibility: visible;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
 # ---------- AUTENTICACIÓN ----------
 # --- Configuración de tokens y correo ---
@@ -275,7 +265,21 @@ area_map = {
 # ---------- LOGO Y TEMPORADA EN LA PARTE SUPERIOR DEL SIDEBAR ----------
 
 if "usuario" in st.session_state:
-    st.sidebar.markdown("&nbsp;")  # fuerza a mostrarlo solo si hay sesión
+    st.markdown("""
+        <style>
+        [data-testid="stSidebar"] {
+            min-width: 250px !important;
+            max-width: 250px !important;
+            width: 250px !important;
+            transform: none !important;
+            visibility: visible !important;
+        }
+        [data-testid="collapsedControl"] {
+            display: none !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    st.sidebar.markdown("&nbsp;") 
 
 logo_path = Path("assets/logo.png")
 if logo_path.exists():
