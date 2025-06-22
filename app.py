@@ -162,7 +162,8 @@ if token_param:
             else:
                 st.error("❌ Las contraseñas no coinciden.")
 
-        st.markdown("</div>", unsafe_allow_html=True)    
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.stop()
 
 # --- LOGIN ---
 usuarios_df = cargar_usuarios_desde_blob()
