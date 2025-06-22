@@ -73,34 +73,64 @@ def guardar_usuarios_en_blob(df):
 # CAMBIOS
 # CAMBIOS
 
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import urllib.parse
+
 def send_recovery_email(mail_destino, token):
-    recover_url = f"{APP_URL}?token={token}"
+    # Codifica el token para que sea seguro en la URL
+    token_url = urllib.parse.quote(token)
+    recover_url = f"{APP_URL}/?token={token_url}"
+
+    # 1) Texto plano SIN <> para que la URL se trate como parte del enlace completo
+    texto_plano = (
+        "Hola,\n\n"
+        "Para restablecer tu contraseña, copia y pega este enlace en tu navegador o haz clic directamente si tu cliente lo detecta:\n\n"
+        f"{recover_url}\n\n"
+        "Si no solicitaste este correo, puedes ignorarlo."
+    )
+
+    # 2) HTML con un botón/enlace que nunca se parte
     html = f"""
     <html>
-      <body>
+      <body style="font-family: sans-serif; line-height:1.4;">
         <p>Hola,</p>
         <p>Para restablecer tu contraseña, haz clic en el siguiente botón:</p>
         <p>
-          <a href="{recover_url}" style="padding:10px 15px;
-             background:#007bff; color:white; text-decoration:none;
-             border-radius:4px;">
+          <a href="{recover_url}" style="
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 4px;
+          ">
             Restablecer contraseña
           </a>
         </p>
-        <p>Si no solicitaste este correo, puedes ignorarlo.</p>
+        <p>Si no solicitaste este correo, ignóralo.</p>
       </body>
     </html>
     """
-    mensaje = MIMEText(html, "html", "utf-8")
+
+    # Montamos el mensaje como multipart/alternative
+    mensaje = MIMEMultipart("alternative")
     mensaje["Subject"] = "🔐 Recuperación de contraseña"
     mensaje["From"]    = "Centro de Recursos <noreply@autoanalyzerpro.com>"
     mensaje["To"]      = mail_destino
 
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(mensaje)
+    mensaje.attach(MIMEText(texto_plano, "plain"))
+    mensaje.attach(MIMEText(html, "html"))
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.send_message(mensaje)
         st.success("✅ Enlace de recuperación enviado al correo electrónico.")
+    except Exception as e:
+        st.error(f"❌ Error al enviar el correo: {e}")
+
 
 # --- Procesar token desde URL ---
 params      = st.query_params
