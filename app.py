@@ -89,8 +89,15 @@ def send_recovery_email(mail_destino, token):
 
 
 # --- Procesar token desde URL ---
-params = st.experimental_get_query_params()
+params = st.query_params
+st.write("📥 Raw query string completa:", params)
 token_param = params.get("token", [None])[0]
+st.write("🔍 Token recibido sin decodificar:", token_param)
+
+
+
+
+
 if token_param:
     try:
         token_param = urllib.parse.unquote(token_param)
@@ -199,10 +206,17 @@ if "usuario" not in st.session_state:
         st.markdown("¿Olvidaste tu contraseña?")
         mail_recup = st.text_input("Introduce tu correo para recuperación", key="recup")
         if st.button("Enviar enlace de recuperación"):
+            
             if mail_recup in usuarios_df["mail"].values:
                 token = serializer.dumps(mail_recup, salt=SALT)
-                st.write("🔑 Token generado:", token)  # <- esto confirmará si entra al envío
+                token_codificado = urllib.parse.quote(token)  # ✅ Añadir esta línea
+
+                st.write("🔐 Token generado:", token)
+                st.write("🔐 Token codificado:", token_codificado)
+
                 send_recovery_email(mail_recup, token)
+
+
             else:
                 st.error("Correo no registrado.")
         st.markdown("</div>", unsafe_allow_html=True)
