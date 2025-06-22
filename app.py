@@ -119,13 +119,19 @@ params      = st.query_params
 token_param = params.get("token", [None])[0]
 
 if token_param:
+    # --- INICIO DE DEPURACIÓN ---
+    st.info(f"Token recibido de la URL para depuración: `{token_param}`")
+    # --- FIN DE DEPURACIÓN ---
     try:
         # El token ya es seguro para URL, lo usamos directamente
         email = serializer.loads(token_param, salt=SALT, max_age=1800)
     except SignatureExpired:
         st.error("❌ Este enlace ha caducado. Solicita uno nuevo.")
-    except BadSignature:
+    except BadSignature as e:
         st.error("❌ Enlace inválido. Asegúrate de copiarlo completo desde tu correo.")
+        # --- INICIO DE DEPURACIÓN ---
+        st.error(f"Detalles del error de firma: {e}")
+        # --- FIN DE DEPURACIÓN ---
         st.stop()
 
     # Mostrar formulario de nueva contraseña
