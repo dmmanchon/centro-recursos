@@ -73,78 +73,67 @@ def guardar_usuarios_en_blob(df):
 # CAMBIOS
 # CAMBIOS
 
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import urllib.parse
+import smtplib
+
+# --- Configuración global ---
+serializer = URLSafeTimedSerializer(SECRET_KEY)
 
 def send_recovery_email(mail_destino, token):
-    # Codifica el token para que sea seguro en la URL
-    token_url = urllib.parse.quote(token)
-    recover_url = f"{APP_URL}/?token={token_url}"
+    # 1) El token ya es url-safe: no lo codificamos de nuevo
+    recover_url = f"{APP_URL}?token={token}"
 
-    # 1) Texto plano SIN <> para que la URL se trate como parte del enlace completo
+    # 2) Montamos un correo multipart (texto+HTML)
     texto_plano = (
         "Hola,\n\n"
-        "Para restablecer tu contraseña, copia y pega este enlace en tu navegador o haz clic directamente si tu cliente lo detecta:\n\n"
+        "Para restablecer tu contraseña copia o haz clic en el siguiente enlace:\n\n"
         f"{recover_url}\n\n"
-        "Si no solicitaste este correo, puedes ignorarlo."
+        "Si no fuiste tú, ignora este mensaje."
     )
-
-    # 2) HTML con un botón/enlace que nunca se parte
     html = f"""
-    <html>
-      <body style="font-family: sans-serif; line-height:1.4;">
-        <p>Hola,</p>
-        <p>Para restablecer tu contraseña, haz clic en el siguiente botón:</p>
-        <p>
-          <a href="{recover_url}" style="
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: #ffffff;
-            text-decoration: none;
-            border-radius: 4px;
-          ">
-            Restablecer contraseña
-          </a>
-        </p>
-        <p>Si no solicitaste este correo, ignóralo.</p>
-      </body>
-    </html>
+    <html><body>
+      <p>Hola,</p>
+      <p>Para restablecer tu contraseña, pulsa este botón:</p>
+      <p><a href="{recover_url}"
+            style="display:inline-block;padding:8px 12px;
+                   background:#007bff;color:#fff;text-decoration:none;
+                   border-radius:4px;">
+          Restablecer contraseña
+      </a></p>
+      <p>Si no fuiste tú, ignora este mensaje.</p>
+    </body></html>
     """
 
-    # Montamos el mensaje como multipart/alternative
-    mensaje = MIMEMultipart("alternative")
-    mensaje["Subject"] = "🔐 Recuperación de contraseña"
-    mensaje["From"]    = "Centro de Recursos <noreply@autoanalyzerpro.com>"
-    mensaje["To"]      = mail_destino
-
-    mensaje.attach(MIMEText(texto_plano, "plain"))
-    mensaje.attach(MIMEText(html, "html"))
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "🔐 Recuperación de contraseña"
+    msg["From"]    = "Centro de Recursos <noreply@autoanalyzerpro.com>"
+    msg["To"]      = mail_destino
+    msg.attach(MIMEText(texto_plano, "plain"))
+    msg.attach(MIMEText(html, "html"))
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASS)
-            server.send_message(mensaje)
-        st.success("✅ Enlace de recuperación enviado al correo electrónico.")
+            server.send_message(msg)
+        st.success("✅ Enlace de recuperación enviado.")
     except Exception as e:
-        st.error(f"❌ Error al enviar el correo: {e}")
-
+        st.error(f"❌ Error al enviar correo: {e}")
 
 # --- Procesar token desde URL ---
 params      = st.query_params
 token_param = params.get("token", [None])[0]
 
 if token_param:
-    token_limpio = urllib.parse.unquote(token_param)
     try:
-        email = serializer.loads(token_limpio, salt=SALT, max_age=1800)
+        email = serializer.loads(token_param, salt=SALT, max_age=1800)
     except SignatureExpired:
-        st.error("❌ Este enlace ha caducado. Solicita uno nuevo.")
+        st.error("❌ Este enlace ha caducado.")
         st.stop()
     except BadSignature:
-        st.error("❌ El enlace no es válido.")
+        st.error("❌ Enlace inválido. Cópialo completo desde tu correo.")
         st.stop()
 
     st.subheader("🔑 Restablecer contraseña")
