@@ -230,7 +230,7 @@ if "usuario" not in st.session_state:
             if mail_recup in usuarios_df["mail"].values:
                 token = serializer.dumps(mail_recup, salt=SALT)
                 token_codificado = urllib.parse.quote(token) 
-                send_recovery_email(mail_recup, token)
+                send_recovery_email(mail_recup, token_codificado)
             else:
                 st.error("Correo no registrado.")
         st.markdown("</div>", unsafe_allow_html=True)
