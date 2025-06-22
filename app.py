@@ -89,10 +89,9 @@ def send_recovery_email(mail_destino, token):
 
 
 # --- Procesar token desde URL ---
-params = st.query_params
+params = st.experimental_get_query_params()
 token_param = params.get("token", [None])[0]
 if token_param:
-
     try:
         token_param = urllib.parse.unquote(token_param)
         st.write("🔍 Token recibido:", token_param)
