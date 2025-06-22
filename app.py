@@ -45,32 +45,6 @@ APP_URL = st.secrets["APP_URL"]
 # --- Configuración general de la app ---
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
-st.markdown("""
-    <script>
-    function expandSidebar() {
-        // Intenta buscar el botón por title en español e inglés
-        let btn = window.parent.document.querySelector('button[title="Expandir sidebar"]')
-               || window.parent.document.querySelector('button[title="Expand sidebar"]');
-        if (btn && btn.offsetParent !== null) {
-            btn.click();
-        } else {
-            // Si no lo encuentra, reintenta hasta 10 veces cada 100ms
-            let tries = 0;
-            let interval = setInterval(() => {
-                tries += 1;
-                btn = window.parent.document.querySelector('button[title="Expandir sidebar"]')
-                   || window.parent.document.querySelector('button[title="Expand sidebar"]');
-                if (btn && btn.offsetParent !== null) {
-                    btn.click();
-                    clearInterval(interval);
-                }
-                if (tries > 10) clearInterval(interval);
-            }, 100);
-        }
-    }
-    window.onload = expandSidebar;
-    </script>
-""", unsafe_allow_html=True)
 
 # ---------- AUTENTICACIÓN ----------
 # --- Configuración de tokens y correo ---
@@ -220,9 +194,16 @@ if "usuario" not in st.session_state and not cookies.get("usuario"):
 
 if "usuario" not in st.session_state:
     cols = st.columns([1, 2, 1])
+    # with cols[1]:
+    #     st.markdown("""<div style='padding: 2rem; background-color: #fafafa;
+    #                     border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);'>""",
+    #                 unsafe_allow_html=True)
+
     with cols[1]:
-        st.markdown("""<div style='padding: 2rem; background-color: #fafafa;
-                        border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);'>""",
+        st.markdown("""<div style='padding: 1rem 2rem; margin-top: -2rem;
+                        background-color: #fafafa;
+                        border-radius: 10px;
+                        box-shadow: 2px 2px 10px rgba(0,0,0,0.1);'>""",
                     unsafe_allow_html=True)
 
         st.subheader("🔐 Iniciar sesión")
