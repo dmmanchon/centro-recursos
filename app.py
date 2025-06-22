@@ -118,8 +118,6 @@ if token_param:
 
     try:
         email = serializer.loads(token_param, salt=SALT, max_age=1800)
-        # Si la validación es exitosa, quitamos el mensaje de depuración
-        st.success("Token validado correctamente. Procede a cambiar tu contraseña.")
 
     except SignatureExpired:
         st.error("❌ Este enlace ha caducado. Solicita uno nuevo.")
@@ -129,19 +127,42 @@ if token_param:
         st.stop()
 
     # Mostrar formulario de nueva contraseña
-    st.subheader("🔑 Restablecer contraseña")
-    nueva     = st.text_input("Nueva contraseña",     type="password")
-    confirmar = st.text_input("Confirmar contraseña", type="password")
-    if st.button("Cambiar contraseña"):
-        if nueva and nueva == confirmar:
-            hashed = bcrypt.hashpw(nueva.encode(), bcrypt.gensalt()).decode()
-            usuarios_df = cargar_usuarios_desde_blob()
-            usuarios_df.loc[usuarios_df["mail"] == email, "contraseña"] = hashed
-            guardar_usuarios_en_blob(usuarios_df)
-            st.success("🔄 Contraseña actualizada. Por favor vuelve a iniciar sesión.")
-        else:
-            st.error("❌ Las contraseñas no coinciden.")
-    st.stop()
+    # st.subheader("🔑 Restablecer contraseña")
+    # nueva     = st.text_input("Nueva contraseña",     type="password")
+    # confirmar = st.text_input("Confirmar contraseña", type="password")
+    # if st.button("Cambiar contraseña"):
+    #     if nueva and nueva == confirmar:
+    #         hashed = bcrypt.hashpw(nueva.encode(), bcrypt.gensalt()).decode()
+    #         usuarios_df = cargar_usuarios_desde_blob()
+    #         usuarios_df.loc[usuarios_df["mail"] == email, "contraseña"] = hashed
+    #         guardar_usuarios_en_blob(usuarios_df)
+    #         st.success("🔄 Contraseña actualizada. Por favor vuelve a iniciar sesión.")
+    #     else:
+    #         st.error("❌ Las contraseñas no coinciden.")
+    # st.stop()
+
+    # Mostrar formulario de nueva contraseña
+    cols = st.columns([1, 2, 1])
+    with cols[1]:
+        st.markdown("""<div style='padding: 2rem; background-color: #fafafa;
+                        border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);'>""",
+                    unsafe_allow_html=True)
+
+        st.subheader("🔑 Restablecer contraseña")
+        nueva = st.text_input("Nueva contraseña", type="password", key="new_pass")
+        confirmar = st.text_input("Confirmar contraseña", type="password", key="confirm_pass")
+
+        if st.button("Cambiar contraseña"):
+            if nueva and nueva == confirmar:
+                hashed = bcrypt.hashpw(nueva.encode(), bcrypt.gensalt()).decode()
+                usuarios_df = cargar_usuarios_desde_blob()
+                usuarios_df.loc[usuarios_df["mail"] == email, "contraseña"] = hashed
+                guardar_usuarios_en_blob(usuarios_df)
+                st.success("🔄 Contraseña actualizada. Por favor vuelve a iniciar sesión.")
+            else:
+                st.error("❌ Las contraseñas no coinciden.")
+
+        st.markdown("</div>", unsafe_allow_html=True)    
 
 # --- LOGIN ---
 usuarios_df = cargar_usuarios_desde_blob()
