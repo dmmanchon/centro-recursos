@@ -558,27 +558,11 @@ except:
 if enlaces_lista:
     st.markdown("### 🔗 Enlaces existentes")
     for i, (nombre, enlace) in enumerate(enlaces_lista):
-        with st.form(key=f"form_enlace_{i}"):
-            st.markdown(f"""
-                <div style='display: flex; align-items: center; margin-bottom: 1rem;'>
-                    <div style='flex-grow: 1;'>
-                        <a href="{enlace}" target="_blank" style="text-decoration: none; font-weight: bold;">
-                            🔗 {nombre}
-                        </a>
-                    </div>
-                    <div style='margin-left: 8rem;'>
-                        <button style="
-                            background-color: transparent;
-                            border: none;
-                            font-size: 1.2rem;
-                            cursor: pointer;
-                            color: #c00;
-                        " name="eliminar" type="submit">🗑️</button>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-            submitted = st.form_submit_button("")  # botón invisible para activar el form
-            if submitted:
+        col1, col2 = st.columns([0.6, 0.05])  # 60% enlace - 5% papelera
+        with col1:
+            st.markdown(f"🔗 [{nombre}]({enlace})")
+        with col2:
+            if st.button("🗑️", key=f"eliminar_enlace_{i}"):
                 enlaces_lista.pop(i)
                 nuevo_contenido = "\n".join([f"{n}::{u}" for n, u in enlaces_lista])
                 subir_a_blob(enlaces_blob, nuevo_contenido.encode("utf-8"))
@@ -586,4 +570,5 @@ if enlaces_lista:
                 st.rerun()
 else:
     st.info("No hay enlaces aún.")
+
 
