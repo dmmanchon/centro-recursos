@@ -557,16 +557,19 @@ except:
 # Permitir eliminar los enlaces compartidos
 if enlaces_lista:
     st.markdown("### 🔗 Enlaces existentes")
-    for i, (nombre, enlace) in enumerate(enlaces_lista):
-        cols = st.columns([8, 1])
+    for i, (nombre, enlace) in enumerate(enlaces_lista):        
+        cols = st.columns([0.9, 0.1])
         with cols[0]:
             st.markdown(f"- [{nombre}]({enlace})")
         with cols[1]:
+            st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
             if st.button("🗑️", key=f"eliminar_enlace_{i}"):
                 enlaces_lista.pop(i)
                 nuevo_contenido = "\n".join([f"{n}::{u}" for n, u in enlaces_lista])
                 subir_a_blob(enlaces_blob, nuevo_contenido.encode("utf-8"))
                 st.success("✅ Enlace eliminado.")
                 st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
 else:
     st.info("No hay enlaces aún.")
