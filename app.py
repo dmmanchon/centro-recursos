@@ -539,15 +539,34 @@ if "subir" in permisos and st.button("Guardar enlace"):
         st.success("✅ Enlace guardado correctamente.")
         st.rerun()
 
-# Leer y mostrar enlaces compartidos desde azure
+# Leer y cargar los enlaces compartidos
 enlaces_blob = f"{azure_prefix}enlaces.txt"
+enlaces_lista = []
+
 try:
     enlaces_bytes = container_client.get_blob_client(enlaces_blob).download_blob().readall()
     for line in enlaces_bytes.decode("utf-8").splitlines():
         try:
             nombre, enlace = line.strip().split("::")
-            st.markdown(f"- 🔗 [{nombre}]({enlace})")
+            enlaces_lista.append((nombre, enlace))
         except:
             continue
 except:
+    enlaces_lista = []
+
+# Permitir eliminar los enlaces compartidos
+if enlaces_lista:
+    st.markdown("### 🔗 Enlaces existentes")
+    for i, (nombre, enlace) in enumerate(enlaces_lista):
+        cols = st.columns([8, 1])
+        with cols[0]:
+            st.markdown(f"- [{nombre}]({enlace})")
+        with cols[1]:
+            if st.button("🗑️", key=f"eliminar_enlace_{i}"):
+                enlaces_lista.pop(i)
+                nuevo_contenido = "\n".join([f"{n}::{u}" for n, u in enlaces_lista])
+                subir_a_blob(enlaces_blob, nuevo_contenido.encode("utf-8"))
+                st.success("✅ Enlace eliminado.")
+                st.rerun()
+else:
     st.info("No hay enlaces aún.")
