@@ -556,11 +556,16 @@ except:
 
 # Permitir eliminar los enlaces compartidos
 if enlaces_lista:
-    st.markdown("### 🔗 Enlaces existentes")
     for i, (nombre, enlace) in enumerate(enlaces_lista):
         col1, col2 = st.columns([0.6, 0.4])  # 60% enlace - 40% espacio para botón
         with col1:
-            st.markdown(f"🔗 [{nombre}]({enlace})")
+            st.markdown(f"""
+                <p style='font-size: 1.1rem; font-weight: bold; margin: 0;'>
+                    🔗 <a href="{enlace}" target="_blank" style="text-decoration: none; color: #0066cc;">
+                        {nombre}
+                    </a>
+                </p>
+            """, unsafe_allow_html=True)
         with col2:
             st.markdown("<div style='display: flex; justify-content: flex-start;'>", unsafe_allow_html=True)
             if st.button("🗑️", key=f"eliminar_enlace_{i}"):
