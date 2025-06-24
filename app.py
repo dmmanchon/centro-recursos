@@ -22,8 +22,10 @@ import urllib.parse
 # Visual Studio Code para programar en python el código de la app (C:\Users\david\Documents\Streamlit\Albacete)
 # Streamlit Cloud para hospedar la app (https://share.streamlit.io/)
 # GitHub para el despliegue de la app (https://github.com/dmmanchon/centro-recursos)
-# Dominio creado en Microsoft @autoanalyzerpro.com para poder enviar enlaces de recuperación desde Mailjet y cuenta de Almacenamiento (https://admin.microsoft.com/?login_hint=autoanalyzerpro%40autoanalyzerpro.com&source=applauncher#/Domains/Details/autoanalyzerpro.com)
-# Azure Blob Storage de Microsoft para el almacenamiento de archivos (https://portal.azure.com/#@autoanalyzerpro.com/resource/subscriptions/31d6b443-05de-4364-8ae6-c879d9350f7b/resourcegroups/app-recursos/providers/Microsoft.Storage/storageAccounts/recursoscentro1/containersList)
+# Dominio en Microsoft @autoanalyzerpro.com para enviar enlaces de recuperación desde Mailjet y cuenta de Almacenamiento:
+# (https://admin.microsoft.com/?login_hint=autoanalyzerpro%40autoanalyzerpro.com&source=applauncher#/Domains/Details/autoanalyzerpro.com)
+# Azure Blob Storage de Microsoft para el almacenamiento de archivos:
+# (https://portal.azure.com/#@autoanalyzerpro.com/resource/subscriptions/31d6b443-05de-4364-8ae6-c879d9350f7b/resourcegroups/app-recursos/providers/Microsoft.Storage/storageAccounts/recursoscentro1/containersList)
 # Mailjet para enviar enlaces de recuperación automáticos (https://app.mailjet.com/onboarding)
 
 # Configuración de Azure Blob Storage desde secrets
@@ -42,19 +44,15 @@ SMTP_PASS = st.secrets["SMTP_PASS"]
 # URL base para enlaces de recuperación
 APP_URL = st.secrets["APP_URL"]
 
-# --- Configuración general de la app ---
+# Configuración general de la app ---
 st.set_page_config(
     page_title="Centro de Recursos Colaborativo",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-#st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide")
 st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
 
-
-# ---------- AUTENTICACIÓN ----------
-# --- Configuración de tokens y correo ---
+# --- AUTENTICACIÓN ---
 
 SECRET_KEY = st.secrets["SECRET_KEY"]
 SALT = "salt-recovery"
@@ -115,7 +113,7 @@ def send_recovery_email(mail_destino: str, token: str):
     except Exception as e:
         st.error(f"❌ Error al enviar correo: {e}")
 
-# --- Procesar token desde URL ---
+# Procesar token desde URL
 params      = st.query_params
 token_param = params.get("token")
 
@@ -200,7 +198,7 @@ if "usuario" not in st.session_state and not cookies.get("usuario"):
 # ...
 
 if "usuario" not in st.session_state:
-    # Oculta el sidebar en la pantalla de login
+    # Oculta el sidebar en la pantalla de acceso
     st.markdown("""
         <style>
         [data-testid="stSidebar"] {
@@ -269,20 +267,20 @@ if "usuario" in st.session_state:
         st.session_state["logout"] = True
         st.rerun()
 
-# ---------- VARIABLES DE SESIÓN ----------
+# --- VARIABLES DE SESIÓN ---
 usuario_actual = st.session_state.usuario
 area_original = st.session_state.area
 permisos = st.session_state.permisos
 rol = st.session_state.rol
 
-# ---------- MAPA DE ÁREAS DISPONIBLES ----------
+# --- MAPA DE ÁREAS DISPONIBLES ---
 area_map = {
     "Dirección Deportiva": "direccion_deportiva",
     "Cuerpo Técnico": "cuerpo_tecnico",
     "Servicios Médicos": "servicios_medicos"
 }
 
-# - Sidebar con logo y temporada
+# Sidebar con logo y temporada
 
 if "usuario" in st.session_state:
     st.sidebar.markdown("&nbsp;") 
@@ -300,11 +298,11 @@ if logo_path.exists():
         unsafe_allow_html=True
     )
 
-# ---------- MENSAJE DE SESIÓN ----------
+# --- MENSAJE DE SESIÓN ---
 st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
 st.sidebar.success(f"{usuario_actual} ({rol})")
 
-# ---------- SELECCIÓN DE ÁREA (si tiene acceso total) ----------
+# --- SELECCIÓN DE ÁREA (si tiene acceso total) ---
 if area_original == "todas":
     st.sidebar.markdown("---")
     area_opciones = list(area_map.keys())
@@ -312,11 +310,11 @@ if area_original == "todas":
 else:
     area = area_original
 
-# ---------- DEFINICIÓN DE PREFIJO PARA BLOB STORAGE ----------
-azure_prefix = area_map[area] + "/"  # Ejemplo: 'direccion_deportiva/'
+# --- DEFINICIÓN DE PREFIJO PARA BLOB STORAGE ---
+azure_prefix = area_map[area] + "/" 
 
 
-# ---------- ENLACES EN SIDEBAR ----------
+# --- ENLACES EN SIDEBAR ---
 sidebar_enlaces = []
 enlace_blob_path = f"{azure_prefix}enlaces.txt"
 try:
@@ -330,7 +328,7 @@ try:
 except Exception:
     pass  # Si no existe el blob de enlaces, no se muestra nada
 
-# ---------- FUNCIONES AUXILIARES ----------
+# Funciones auxiliares
 def generar_id_archivo(nombre_archivo):
     base = Path(nombre_archivo).stem
     base = base.lower().replace(" ", "_")
@@ -341,8 +339,12 @@ def icono_archivo(nombre_archivo):
     ext = Path(nombre_archivo).suffix.lower()
     if ext == ".pdf":
         return "📄"
-    elif ext in [".xlsx", ".xls", ".csv"]:
+    elif ext in [".doc", ".docx"]:
+        return "📝"
+    elif ext in [".ppt", ".pptx"]:
         return "📊"
+    elif ext in [".xlsx", ".xls", ".csv"]:
+        return "📈"
     elif ext in [".mp4", ".mov"]:
         return "🎥"
     elif ext in [".jpg", ".jpeg", ".png", ".gif"]:
@@ -350,7 +352,8 @@ def icono_archivo(nombre_archivo):
     else:
         return "📁"
 
-# ---------- LISTADO DE ARCHIVOS EN SIDEBAR ----------
+
+# --- LISTADO DE ARCHIVOS EN SIDEBAR ---
 archivos_sidebar = []
 for blob in container_client.list_blobs(name_starts_with=azure_prefix):
     if not blob.name.endswith(".meta.json") and not blob.name.endswith("enlaces.txt"):
@@ -379,12 +382,12 @@ with st.sidebar.expander(f"🔗 Enlaces compartidos: {len(sidebar_enlaces)}"):
         st.markdown(f"- [{nombre}]({enlace})")
 
 
-# ---------- INTERFAZ PRINCIPAL ----------
+# --- INTERFAZ PRINCIPAL ---
 st.markdown(f"## {area}")
 st.markdown("### 🔎 Buscar archivos")
 search_query = st.text_input("Buscar por nombre o descripción").lower()
 
-# ---------- FUNCIONES AZURE BLOB ----------
+# --- FUNCIONES AZURE BLOB ---
 
 def subir_a_blob(nombre_archivo, contenido_bytes):
     blob_client = container_client.get_blob_client(nombre_archivo)
@@ -403,13 +406,13 @@ def eliminar_blob(nombre_archivo):
     blob_client.delete_blob()
 
 
-# ---------- SUBIDA DE ARCHIVOS ----------
+# --- SUBIDA DE ARCHIVOS ---
 if "subir" in permisos:
     st.markdown("### 📤 Subida de archivos")
     comentario_input = st.text_area("Comentario o descripción (opcional)")
     uploaded_file = st.file_uploader(
         "Selecciona un archivo",
-        type=["pdf", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"]
+        type=["pdf", "doc", "docx", "ppt", "pptx", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"]
     )
 
     if uploaded_file:
@@ -434,11 +437,11 @@ if "subir" in permisos:
         st.success(f"✅ Archivo **{original_name}** y sus metadatos subidos correctamente.")
 
 
-# ---------- VISUALIZACIÓN Y GESTIÓN DE ARCHIVOS ----------
+# --- VISUALIZACIÓN Y GESTIÓN DE ARCHIVOS ---
 st.markdown("---")
 st.markdown("### 📁 Archivos disponibles")
 
-# ---------- CONTROLES DE VISTA ----------
+# Controles de Vista
 col1, col2 = st.columns(2)
 with col1:
     orden = st.selectbox("Ordenar por", ["Más recientes", "Más antiguos", "Nombre A-Z", "Nombre Z-A"],index=0)
@@ -516,7 +519,7 @@ for chunk in chunks:
 
             st.markdown("---")
 
-# ---------- ENLACES COMPARTIDOS ----------
+# --- ENLACES COMPARTIDOS ---
 st.markdown("### 🔗 Enlaces compartidos")
 nombre_url = st.text_input("Título o descripción")
 url = st.text_input("Introduce un enlace (https://...)")
