@@ -558,17 +558,20 @@ except:
 if enlaces_lista:
     st.markdown("### 🔗 Enlaces existentes")
     for i, (nombre, enlace) in enumerate(enlaces_lista):
-        col1, col2 = st.columns([0.6, 0.05])  # 60% enlace - 5% papelera
+        col1, col2 = st.columns([0.6, 0.4])  # 60% enlace - 40% espacio para botón
         with col1:
             st.markdown(f"🔗 [{nombre}]({enlace})")
         with col2:
+            st.markdown("<div style='display: flex; justify-content: flex-start;'>", unsafe_allow_html=True)
             if st.button("🗑️", key=f"eliminar_enlace_{i}"):
                 enlaces_lista.pop(i)
                 nuevo_contenido = "\n".join([f"{n}::{u}" for n, u in enlaces_lista])
                 subir_a_blob(enlaces_blob, nuevo_contenido.encode("utf-8"))
                 st.success("✅ Enlace eliminado.")
                 st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 else:
     st.info("No hay enlaces aún.")
+
 
 
