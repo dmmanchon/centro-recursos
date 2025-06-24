@@ -558,17 +558,32 @@ except:
 if enlaces_lista:
     st.markdown("### 🔗 Enlaces existentes")
     for i, (nombre, enlace) in enumerate(enlaces_lista):
-        col1, col2 = st.columns([0.85, 0.15])
-        with col1:
-            st.markdown(f"<p style='margin-bottom: 0.5rem;'>🔗 <a href='{enlace}' target='_blank'>{nombre}</a></p>", unsafe_allow_html=True)
+        col1, col2 = st.columns([0.01, 0.99])
         with col2:
-            eliminar = st.button("🗑️", key=f"eliminar_enlace_{i}")
-        if eliminar:
-            enlaces_lista.pop(i)
-            nuevo_contenido = "\n".join([f"{n}::{u}" for n, u in enlaces_lista])
-            subir_a_blob(enlaces_blob, nuevo_contenido.encode("utf-8"))
-            st.success("✅ Enlace eliminado.")
-            st.rerun()
+            st.markdown(f"""
+                <div style='display: flex; align-items: center; justify-content: flex-start; gap: 2rem; margin-bottom: 0.5rem;'>
+                    <div style='flex-grow:1;'>
+                        🔗 <a href="{enlace}" target="_blank">{nombre}</a>
+                    </div>
+                    <form action='' method='post'>
+                        <button name='eliminar_{i}' type='submit' style='
+                            background: none;
+                            border: none;
+                            font-size: 1.3rem;
+                            cursor: pointer;
+                            color: #c00;
+                        '>🗑️</button>
+                    </form>
+                </div>
+            """, unsafe_allow_html=True)
+
+            # Captura si se pulsó el botón (Streamlit no detecta directamente botones HTML)
+            if f"eliminar_{i}" in st.session_state:
+                enlaces_lista.pop(i)
+                nuevo_contenido = "\n".join([f"{n}::{u}" for n, u in enlaces_lista])
+                subir_a_blob(enlaces_blob, nuevo_contenido.encode("utf-8"))
+                st.success("✅ Enlace eliminado.")
+                st.rerun()
 else:
     st.info("No hay enlaces aún.")
 
