@@ -406,7 +406,98 @@ def eliminar_blob(nombre_archivo):
     blob_client.delete_blob()
 
 
-# --- SUBIDA DE ARCHIVOS ---
+#--- SUBIDA DE ARCHIVOS ---
+
+def find_existing_blob_by_original_name(original_name_to_find, prefix):
+    """
+    Busca en Azure Blob Storage si ya existe un blob con el mismo nombre original.
+    Devuelve el nombre del blob si lo encuentra, de lo contrario None.
+    """
+    for blob in container_client.list_blobs(name_starts_with=prefix):
+        # Nos interesan los archivos de metadatos para leer el nombre original
+        if blob.name.endswith(".meta.json"):
+            try:
+                meta_bytes = container_client.get_blob_client(blob.name).download_blob().readall()
+                meta = json.loads(meta_bytes)
+                # Si el nombre original coincide, hemos encontrado el archivo
+                if meta.get("nombre_original") == original_name_to_find:
+                    # Devolvemos el nombre del blob de datos (sin .meta.json)
+                    return blob.name.replace(".meta.json", "")
+            except Exception:
+                # Si hay un error al leer un meta, lo ignoramos y continuamos
+                continue
+    return None
+
+#--- SUBIDA DE ARCHIVOS ---
+if "subir" in permisos:
+    st.markdown("### 📤 Subida de archivos")
+    comentario_input = st.text_area("Comentario o descripción (opcional)", key="comentario_subida")
+    uploaded_file = st.file_uploader(
+        "Arrastra un archivo o haz clic en ‘Browse files’ para seleccionarlo desde tu dispositivo",
+        type=["pdf", "doc", "docx", "ppt", "pptx", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"]
+    )
+
+    if uploaded_file:
+        original_name = uploaded_file.name
+
+        # 1. VERIFICAR SI EL ARCHIVO YA EXISTE
+        existing_blob_name = find_existing_blob_by_original_name(original_name, azure_prefix)
+
+        if existing_blob_name:
+            # 2. SI EXISTE, MOSTRAR OPCIONES DE SOBRESCRITURA
+            st.warning(f"⚠️ Ya existe un archivo llamado **{original_name}**. ¿Qué deseas hacer?")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🔄 Sobrescribir archivo existente"):
+                    # Subir el nuevo contenido sobre el blob existente
+                    subir_a_blob(existing_blob_name, uploaded_file.getvalue())
+
+                    # Actualizar los metadatos del archivo existente
+                    meta_blob_name = existing_blob_name + ".meta.json"
+                    try:
+                        # Intentar leer metadatos antiguos para mantenerlos si es posible
+                        meta_bytes = descargar_blob(meta_blob_name)
+                        meta = json.loads(meta_bytes)
+                    except Exception:
+                        meta = {} # Si no hay meta, se crea uno nuevo
+
+                    meta["usuario"] = st.session_state.usuario
+                    meta["fecha"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    meta["comentario"] = comentario_input.strip()
+                    meta["nombre_original"] = original_name # Asegurarse que se mantiene
+
+                    meta_str = json.dumps(meta, ensure_ascii=False)
+                    subir_a_blob(meta_blob_name, meta_str.encode("utf-8"))
+
+                    st.success(f"✅ Archivo **{original_name}** sobrescrito correctamente.")
+            with col2:
+                if st.button("❌ Cancelar subida"):
+                    st.info("Subida cancelada.")
+                    # No se hace nada, el rerun limpiará el estado
+        else:
+            # 3. SI NO EXISTE, PROCEDER CON LA SUBIDA NORMAL
+            timestamp_fn = datetime.now().strftime("%Y%m%d-%H%M%S")
+            safe_filename = f"{timestamp_fn}_{original_name}"
+            blob_name = f"{azure_prefix}{safe_filename}"
+
+            # Subir archivo
+            subir_a_blob(blob_name, uploaded_file.getvalue())
+
+            # Crear metadatos
+            meta = {
+                "usuario": st.session_state.usuario,
+                "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "comentario": comentario_input.strip(),
+                "nombre_original": original_name
+            }
+            meta_str = json.dumps(meta, ensure_ascii=False)
+            subir_a_blob(f"{blob_name}.meta.json", meta_str.encode("utf-8"))
+
+            st.success(f"✅ Archivo **{original_name}** subido.")
+            # st.rerun() # Opcional: para limpiar el widget de subida tras el éxito
+
+
 # if "subir" in permisos:
 #     st.markdown("### 📤 Subida de archivos")
 #     comentario_input = st.text_area("Comentario o descripción (opcional)")
@@ -436,76 +527,6 @@ def eliminar_blob(nombre_archivo):
 #         subir_a_blob(f"{blob_name}.meta.json", meta_str.encode("utf-8"))
 
 #         st.success(f"✅ Archivo **{original_name}** subido.")
-
-if "subir" in permisos:
-    st.markdown("### 📤 Subida de archivos")
-    comentario_input = st.text_area("Comentario o descripción (opcional)")
-    uploaded_file = st.file_uploader(
-        "Selecciona un archivo",
-        type=["pdf", "doc", "docx", "ppt", "pptx", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"],
-        label_visibility="collapsed"
-    )
-
-    if uploaded_file:
-        blob_name = f"{azure_prefix}{uploaded_file.name}"
-        blob_client = container_client.get_blob_client(blob_name)
-
-        if blob_client.exists():
-            if "decision_subida" not in st.session_state:
-                st.session_state["archivo_pendiente"] = uploaded_file
-                st.session_state["comentario_pendiente"] = comentario_input
-                st.session_state["nombre_archivo_pendiente"] = uploaded_file.name
-
-                with st.warning(f"⚠️ Ya existe un archivo llamado **{uploaded_file.name}**. ¿Deseas sobrescribirlo?"):
-                    col1, col2 = st.columns([1, 2])
-                    if col1.button("✅ Sí, sobrescribir"):
-                        st.session_state["decision_subida"] = "sobrescribir"
-                        st.rerun()
-                    if col2.button("❌ No subir"):
-                        st.session_state["decision_subida"] = "cancelar"
-                        st.rerun()
-                st.stop()
-
-            # Evaluar la decisión del usuario
-            if st.session_state.get("decision_subida") == "cancelar":
-                st.info("🚫 Subida cancelada.")
-                st.session_state.pop("archivo_pendiente", None)
-                st.session_state.pop("comentario_pendiente", None)
-                st.session_state.pop("nombre_archivo_pendiente", None)
-                st.session_state.pop("decision_subida", None)
-                st.stop()
-
-            elif st.session_state.get("decision_subida") == "sobrescribir":
-                archivo = st.session_state["archivo_pendiente"]
-                comentario = st.session_state.get("comentario_pendiente", "")
-                blob_name = f"{azure_prefix}{st.session_state['nombre_archivo_pendiente']}"
-                subir_a_blob(blob_name, archivo.getvalue())
-                metadata = {
-                    "autor": st.session_state.get("usuario", "desconocido"),
-                    "fecha_subida": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "comentario": comentario
-                }
-                subir_a_blob(blob_name + ".meta.json", json.dumps(metadata, ensure_ascii=False).encode("utf-8"))
-                st.success("✅ Archivo sobrescrito correctamente.")
-                # Limpiar
-                st.session_state.pop("archivo_pendiente", None)
-                st.session_state.pop("comentario_pendiente", None)
-                st.session_state.pop("nombre_archivo_pendiente", None)
-                st.session_state.pop("decision_subida", None)
-                st.rerun()
-
-        else:
-            # Archivo no existe: subir directamente
-            subir_a_blob(f"{azure_prefix}{uploaded_file.name}", uploaded_file.getvalue())
-            metadata = {
-                "autor": st.session_state.get("usuario", "desconocido"),
-                "fecha_subida": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "comentario": comentario_input
-            }
-            subir_a_blob(f"{azure_prefix}{uploaded_file.name}.meta.json", json.dumps(metadata, ensure_ascii=False).encode("utf-8"))
-            st.success("✅ Archivo subido correctamente.")
-            st.rerun()
-
 
 
 # --- VISUALIZACIÓN Y GESTIÓN DE ARCHIVOS ---
