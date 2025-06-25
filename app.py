@@ -451,41 +451,58 @@ if "subir" in permisos:
         blob_client = container_client.get_blob_client(blob_name)
 
         if blob_client.exists():
-            if "confirmar_sobrescritura" not in st.session_state and "cancelar_subida" not in st.session_state:
+            if "decision_subida" not in st.session_state:
+                st.session_state["archivo_pendiente"] = uploaded_file
+                st.session_state["comentario_pendiente"] = comentario_input
+                st.session_state["nombre_archivo_pendiente"] = uploaded_file.name
+
                 with st.warning(f"⚠️ Ya existe un archivo llamado **{uploaded_file.name}**. ¿Deseas sobrescribirlo?"):
                     col1, col2 = st.columns([1, 2])
-                    if col1.button("✅ Sí, sobrescribir", key="confirmar_sobrescritura"):
-                        st.session_state["confirmar_sobrescritura"] = True
-                    if col2.button("❌ No subir", key="cancelar_subida"):
-                        st.session_state["cancelar_subida"] = True
+                    if col1.button("✅ Sí, sobrescribir"):
+                        st.session_state["decision_subida"] = "sobrescribir"
+                        st.rerun()
+                    if col2.button("❌ No subir"):
+                        st.session_state["decision_subida"] = "cancelar"
+                        st.rerun()
                 st.stop()
 
-            if st.session_state.get("cancelar_subida"):
+            # Evaluar la decisión del usuario
+            if st.session_state.get("decision_subida") == "cancelar":
                 st.info("🚫 Subida cancelada.")
-                del st.session_state["cancelar_subida"]
-                del st.session_state["confirmar_sobrescritura"]
+                st.session_state.pop("archivo_pendiente", None)
+                st.session_state.pop("comentario_pendiente", None)
+                st.session_state.pop("nombre_archivo_pendiente", None)
+                st.session_state.pop("decision_subida", None)
                 st.stop()
 
-            if st.session_state.get("confirmar_sobrescritura"):
-                subir_a_blob(blob_name, uploaded_file.getvalue())
+            elif st.session_state.get("decision_subida") == "sobrescribir":
+                archivo = st.session_state["archivo_pendiente"]
+                comentario = st.session_state.get("comentario_pendiente", "")
+                blob_name = f"{azure_prefix}{st.session_state['nombre_archivo_pendiente']}"
+                subir_a_blob(blob_name, archivo.getvalue())
                 metadata = {
                     "autor": st.session_state.get("usuario", "desconocido"),
                     "fecha_subida": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "comentario": comentario_input
+                    "comentario": comentario
                 }
                 subir_a_blob(blob_name + ".meta.json", json.dumps(metadata, ensure_ascii=False).encode("utf-8"))
                 st.success("✅ Archivo sobrescrito correctamente.")
-                del st.session_state["confirmar_sobrescritura"]
+                # Limpiar
+                st.session_state.pop("archivo_pendiente", None)
+                st.session_state.pop("comentario_pendiente", None)
+                st.session_state.pop("nombre_archivo_pendiente", None)
+                st.session_state.pop("decision_subida", None)
                 st.rerun()
 
         else:
-            subir_a_blob(blob_name, uploaded_file.getvalue())
+            # Archivo no existe: subir directamente
+            subir_a_blob(f"{azure_prefix}{uploaded_file.name}", uploaded_file.getvalue())
             metadata = {
                 "autor": st.session_state.get("usuario", "desconocido"),
                 "fecha_subida": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "comentario": comentario_input
             }
-            subir_a_blob(blob_name + ".meta.json", json.dumps(metadata, ensure_ascii=False).encode("utf-8"))
+            subir_a_blob(f"{azure_prefix}{uploaded_file.name}.meta.json", json.dumps(metadata, ensure_ascii=False).encode("utf-8"))
             st.success("✅ Archivo subido correctamente.")
             st.rerun()
 
