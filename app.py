@@ -407,35 +407,84 @@ def eliminar_blob(nombre_archivo):
 
 
 # --- SUBIDA DE ARCHIVOS ---
+# if "subir" in permisos:
+#     st.markdown("### 📤 Subida de archivos")
+#     comentario_input = st.text_area("Comentario o descripción (opcional)")
+#     uploaded_file = st.file_uploader(
+#         "Arrastra un archivo o haz clic en ‘Browse files’ para seleccionarlo desde tu dispositivo",
+#         type=["pdf", "doc", "docx", "ppt", "pptx", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"]
+#     )
+#     label_visibility="collapsed"
+
+#     if uploaded_file:
+#         original_name = uploaded_file.name
+#         timestamp_fn = datetime.now().strftime("%Y%m%d-%H%M%S")
+#         safe_filename = f"{timestamp_fn}_{original_name}"
+#         blob_name = f"{azure_prefix}{safe_filename}"
+
+#         # Subir archivo
+#         subir_a_blob(blob_name, uploaded_file.getvalue())
+
+#         # Crear metadatos
+#         meta = {
+#             "usuario": st.session_state.usuario,
+#             "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+#             "comentario": comentario_input.strip(),
+#             "nombre_original": original_name
+#         }
+#         meta_str = json.dumps(meta, ensure_ascii=False)
+#         subir_a_blob(f"{blob_name}.meta.json", meta_str.encode("utf-8"))
+
+#         st.success(f"✅ Archivo **{original_name}** subido.")
+
 if "subir" in permisos:
     st.markdown("### 📤 Subida de archivos")
     comentario_input = st.text_area("Comentario o descripción (opcional)")
     uploaded_file = st.file_uploader(
-        "Arrastra un archivo o haz clic en ‘Browse files’ para seleccionarlo desde tu dispositivo",
-        type=["pdf", "doc", "docx", "ppt", "pptx", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"]
+        "Selecciona un archivo",
+        type=["pdf", "doc", "docx", "ppt", "pptx", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"],
+        label_visibility="collapsed"
     )
-    label_visibility="collapsed"
 
     if uploaded_file:
-        original_name = uploaded_file.name
-        timestamp_fn = datetime.now().strftime("%Y%m%d-%H%M%S")
-        safe_filename = f"{timestamp_fn}_{original_name}"
-        blob_name = f"{azure_prefix}{safe_filename}"
+        blob_name = f"{azure_prefix}{uploaded_file.name}"
+        blob_client = container_client.get_blob_client(blob_name)
 
-        # Subir archivo
-        subir_a_blob(blob_name, uploaded_file.getvalue())
+        if blob_client.exists():
+            with st.warning(f"⚠️ Ya existe un archivo llamado **{uploaded_file.name}**. ¿Deseas sobrescribirlo?"):
+                col1, col2 = st.columns([1, 2])
+                sobrescribir = col1.button("✅ Sí, sobrescribir", key="confirmar_sobrescritura")
+                cancelar = col2.button("❌ No subir", key="cancelar_subida")
+            
+            if sobrescribir:
+                subir_a_blob(blob_name, uploaded_file.getvalue())
 
-        # Crear metadatos
-        meta = {
-            "usuario": st.session_state.usuario,
-            "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "comentario": comentario_input.strip(),
-            "nombre_original": original_name
-        }
-        meta_str = json.dumps(meta, ensure_ascii=False)
-        subir_a_blob(f"{blob_name}.meta.json", meta_str.encode("utf-8"))
+                # Guardar/actualizar metadata
+                metadata = {
+                    "autor": st.session_state["usuario"],
+                    "fecha_subida": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "comentario": ""
+                }
+                subir_a_blob(blob_name + ".meta.json", json.dumps(metadata, ensure_ascii=False).encode("utf-8"))
 
-        st.success(f"✅ Archivo **{original_name}** subido.")
+                st.success("✅ Archivo sobrescrito correctamente.")
+                st.rerun()
+
+            elif cancelar:
+                st.info("Subida cancelada.")
+        else:
+            # No existe → subir directamente
+            subir_a_blob(blob_name, uploaded_file.getvalue())
+
+            metadata = {
+                "autor": st.session_state["usuario"],
+                "fecha_subida": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "comentario": ""
+            }
+            subir_a_blob(blob_name + ".meta.json", json.dumps(metadata, ensure_ascii=False).encode("utf-8"))
+
+            st.success("✅ Archivo subido correctamente.")
+            st.rerun()
 
 
 # --- VISUALIZACIÓN Y GESTIÓN DE ARCHIVOS ---
