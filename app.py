@@ -557,8 +557,9 @@ except:
 # Permitir eliminar los enlaces compartidos
 if enlaces_lista:
     st.markdown("---")
+    # Título y papelera
     for i, (nombre, enlace) in enumerate(enlaces_lista):
-        col1, col2 = st.columns([0.6, 0.4])  # 60% enlace - 40% espacio para botón
+        col1, col2 = st.columns([0.5, 0.5])
         with col1:
             st.markdown(f"""
                 <p style='font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem 0;'>
