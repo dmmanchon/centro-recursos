@@ -411,7 +411,7 @@ if "subir" in permisos:
     st.markdown("### 📤 Subida de archivos")
     comentario_input = st.text_area("Comentario o descripción (opcional)")
     uploaded_file = st.file_uploader(
-        "Selecciona un archivo",
+        "Arrastra un archivo o haz clic en ‘Browse files’ para seleccionarlo desde tu dispositivo",
         type=["pdf", "doc", "docx", "ppt", "pptx", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"]
     )
     label_visibility="collapsed"
