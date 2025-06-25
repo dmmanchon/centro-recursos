@@ -447,10 +447,13 @@ if "subir" in permisos:
     )
 
     if uploaded_file:
+        # Nombre final del blob en Azure (con prefijo)
         blob_name = f"{azure_prefix}{uploaded_file.name}"
-        blob_client = container_client.get_blob_client(blob_name)
-
-        if blob_client.exists():
+        
+        # Lista de todos los blobs existentes con su prefijo completo
+        blobs_existentes = [b.name for b in container_client.list_blobs()]
+        
+        if blob_name in blobs_existentes:
             with st.warning(f"⚠️ Ya existe un archivo llamado **{uploaded_file.name}**. ¿Deseas sobrescribirlo?"):
                 col1, col2 = st.columns([1, 2])
                 sobrescribir = col1.button("✅ Sí, sobrescribir", key="confirmar_sobrescritura")
@@ -459,7 +462,6 @@ if "subir" in permisos:
             if sobrescribir:
                 subir_a_blob(blob_name, uploaded_file.getvalue())
 
-                # Guardar/actualizar metadata
                 metadata = {
                     "autor": st.session_state["usuario"],
                     "fecha_subida": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -473,7 +475,7 @@ if "subir" in permisos:
             elif cancelar:
                 st.info("Subida cancelada.")
         else:
-            # No existe → subir directamente
+            # Subida normal si no existe
             subir_a_blob(blob_name, uploaded_file.getvalue())
 
             metadata = {
