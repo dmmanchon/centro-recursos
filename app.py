@@ -512,6 +512,16 @@ for chunk in chunks:
                 subir_a_blob(blob_name + ".meta.json", meta_str.encode("utf-8"))
                 st.success("Comentario actualizado.")
 
+            nuevo_archivo = st.file_uploader(
+                label="🔄 Reemplazar archivo",
+                type=["pdf", "doc", "docx", "ppt", "pptx", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"],
+                key=f"actualizar_{blob_name}"
+            )
+            if nuevo_archivo:
+                subir_a_blob(blob_name, nuevo_archivo.getvalue())
+                st.success("✅ Archivo actualizado correctamente.")
+                st.rerun()
+
             if st.button("🗑️ Eliminar archivo", key=f"eliminar_{blob_name}"):
                 eliminar_blob(blob_name)
                 eliminar_blob(blob_name + ".meta.json")
@@ -519,9 +529,10 @@ for chunk in chunks:
 
             st.markdown("---")
 
+
 # --- ENLACES COMPARTIDOS ---
 st.markdown("### 🔗 Enlaces compartidos")
-nombre_url = st.text_input("Título o descripción")
+nombre_url = st.text_input("Título")
 url = st.text_input("Introduce un enlace (https://...)")
 
 if "subir" in permisos and st.button("Guardar enlace"):
