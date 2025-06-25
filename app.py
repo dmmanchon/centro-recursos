@@ -447,46 +447,48 @@ if "subir" in permisos:
     )
 
     if uploaded_file:
-        # Nombre final del blob en Azure (con prefijo)
         blob_name = f"{azure_prefix}{uploaded_file.name}"
-        
-        # Lista de todos los blobs existentes con su prefijo completo
-        blobs_existentes = [b.name for b in container_client.list_blobs()]
-        
-        if blob_name in blobs_existentes:
-            with st.warning(f"⚠️ Ya existe un archivo llamado **{uploaded_file.name}**. ¿Deseas sobrescribirlo?"):
-                col1, col2 = st.columns([1, 2])
-                sobrescribir = col1.button("✅ Sí, sobrescribir", key="confirmar_sobrescritura")
-                cancelar = col2.button("❌ No subir", key="cancelar_subida")
-            
-            if sobrescribir:
-                subir_a_blob(blob_name, uploaded_file.getvalue())
+        blob_client = container_client.get_blob_client(blob_name)
 
+        if blob_client.exists():
+            if "confirmar_sobrescritura" not in st.session_state and "cancelar_subida" not in st.session_state:
+                with st.warning(f"⚠️ Ya existe un archivo llamado **{uploaded_file.name}**. ¿Deseas sobrescribirlo?"):
+                    col1, col2 = st.columns([1, 2])
+                    if col1.button("✅ Sí, sobrescribir", key="confirmar_sobrescritura"):
+                        st.session_state["confirmar_sobrescritura"] = True
+                    if col2.button("❌ No subir", key="cancelar_subida"):
+                        st.session_state["cancelar_subida"] = True
+                st.stop()
+
+            if st.session_state.get("cancelar_subida"):
+                st.info("🚫 Subida cancelada.")
+                del st.session_state["cancelar_subida"]
+                del st.session_state["confirmar_sobrescritura"]
+                st.stop()
+
+            if st.session_state.get("confirmar_sobrescritura"):
+                subir_a_blob(blob_name, uploaded_file.getvalue())
                 metadata = {
-                    "autor": st.session_state["usuario"],
+                    "autor": st.session_state.get("usuario", "desconocido"),
                     "fecha_subida": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "comentario": ""
+                    "comentario": comentario_input
                 }
                 subir_a_blob(blob_name + ".meta.json", json.dumps(metadata, ensure_ascii=False).encode("utf-8"))
-
                 st.success("✅ Archivo sobrescrito correctamente.")
+                del st.session_state["confirmar_sobrescritura"]
                 st.rerun()
 
-            elif cancelar:
-                st.info("Subida cancelada.")
         else:
-            # Subida normal si no existe
             subir_a_blob(blob_name, uploaded_file.getvalue())
-
             metadata = {
-                "autor": st.session_state["usuario"],
+                "autor": st.session_state.get("usuario", "desconocido"),
                 "fecha_subida": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "comentario": ""
+                "comentario": comentario_input
             }
             subir_a_blob(blob_name + ".meta.json", json.dumps(metadata, ensure_ascii=False).encode("utf-8"))
-
             st.success("✅ Archivo subido correctamente.")
             st.rerun()
+
 
 
 # --- VISUALIZACIÓN Y GESTIÓN DE ARCHIVOS ---
