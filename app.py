@@ -434,7 +434,7 @@ if "subir" in permisos:
         meta_str = json.dumps(meta, ensure_ascii=False)
         subir_a_blob(f"{blob_name}.meta.json", meta_str.encode("utf-8"))
 
-        st.success(f"✅ Archivo **{original_name}** y sus metadatos subidos correctamente.")
+        st.success(f"✅ Archivo **{original_name}** subido.")
 
 
 # --- VISUALIZACIÓN Y GESTIÓN DE ARCHIVOS ---
@@ -515,7 +515,8 @@ for chunk in chunks:
             nuevo_archivo = st.file_uploader(
                 label="🔄 Reemplazar archivo",
                 type=["pdf", "doc", "docx", "ppt", "pptx", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"],
-                key=f"actualizar_{blob_name}"
+                key=f"actualizar_{blob_name}",
+                label_visibility="visible"
             )
             if nuevo_archivo:
                 subir_a_blob(blob_name, nuevo_archivo.getvalue())
