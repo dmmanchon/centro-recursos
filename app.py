@@ -414,6 +414,7 @@ if "subir" in permisos:
         "Selecciona un archivo",
         type=["pdf", "doc", "docx", "ppt", "pptx", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"]
     )
+    label_visibility="collapsed"
 
     if uploaded_file:
         original_name = uploaded_file.name
@@ -511,17 +512,6 @@ for chunk in chunks:
                 meta_str = json.dumps(meta, ensure_ascii=False)
                 subir_a_blob(blob_name + ".meta.json", meta_str.encode("utf-8"))
                 st.success("Comentario actualizado.")
-
-            nuevo_archivo = st.file_uploader(
-                label="🔄 Reemplazar archivo",
-                type=["pdf", "doc", "docx", "ppt", "pptx", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"],
-                key=f"actualizar_{blob_name}",
-                label_visibility="visible"
-            )
-            if nuevo_archivo:
-                subir_a_blob(blob_name, nuevo_archivo.getvalue())
-                st.success("✅ Archivo actualizado correctamente.")
-                st.rerun()
 
             if st.button("🗑️ Eliminar archivo", key=f"eliminar_{blob_name}"):
                 eliminar_blob(blob_name)
