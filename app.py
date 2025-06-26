@@ -63,6 +63,8 @@ SECRET_KEY = st.secrets["SECRET_KEY"]
 SALT = "salt-recovery"
 serializer = URLSafeTimedSerializer(SECRET_KEY)
 
+# --- FUNCIONES ---
+
 @st.cache_data
 def cargar_usuarios_desde_blob():
     blob_client = container_client.get_blob_client("usuarios.xlsx")
@@ -158,6 +160,24 @@ def send_recovery_email(mail_destino: str, token: str):
         st.success("✅ Enlace de recuperación enviado correctamente.")
     except Exception as e:
         st.error(f"❌ Error al enviar correo: {e}")
+
+
+# Funciones Azure Blob
+def subir_a_blob(nombre_archivo, contenido_bytes):
+    blob_client = container_client.get_blob_client(nombre_archivo)
+    blob_client.upload_blob(contenido_bytes, overwrite=True)
+
+def listar_blobs():
+    return container_client.list_blobs()
+
+def descargar_blob(nombre_archivo):
+    blob_client = container_client.get_blob_client(nombre_archivo)
+    stream = blob_client.download_blob()
+    return stream.readall()
+
+def eliminar_blob(nombre_archivo):
+    blob_client = container_client.get_blob_client(nombre_archivo)
+    blob_client.delete_blob()
 
 # Funciones auxiliares
 def generar_id_archivo(nombre_archivo):
@@ -411,24 +431,6 @@ st.markdown(f"## {area}")
 st.markdown("### 🔎 Buscar archivos")
 search_query = st.text_input("Buscar por nombre o descripción").lower()
 
-# --- FUNCIONES AZURE BLOB ---
-
-def subir_a_blob(nombre_archivo, contenido_bytes):
-    blob_client = container_client.get_blob_client(nombre_archivo)
-    blob_client.upload_blob(contenido_bytes, overwrite=True)
-
-def listar_blobs():
-    return container_client.list_blobs()
-
-def descargar_blob(nombre_archivo):
-    blob_client = container_client.get_blob_client(nombre_archivo)
-    stream = blob_client.download_blob()
-    return stream.readall()
-
-def eliminar_blob(nombre_archivo):
-    blob_client = container_client.get_blob_client(nombre_archivo)
-    blob_client.delete_blob()
-
 
 #--- SUBIDA DE ARCHIVOS ---
 
@@ -611,30 +613,34 @@ for chunk in chunks:
 st.markdown("### 🔗 Enlaces compartidos")
 
 if "subir" in permisos:
-    with st.form("form_nuevo_enlace"):
-        st.markdown("Añadir nuevo enlace:")
-        nombre_url = st.text_input("Título del enlace")
-        url = st.text_input("URL (https://...)")
-        
-        if st.form_submit_button("Guardar enlace"):
-            if url and nombre_url:
-                enlaces_lista.append((nombre_url, url))
-                nuevo_contenido = "\n".join([f"{nombre}::{enlace}" for nombre, enlace in enlaces_lista])
-                subir_a_blob(f"{azure_prefix}enlaces.txt", nuevo_contenido.encode("utf-8"))
-                get_enlaces.clear()
-                st.success("✅ Enlace guardado correctamente.")
-                st.rerun()
-            else:
-                st.warning("El título y la URL no pueden estar vacíos.")
-
+    st.markdown("Añadir nuevo enlace:")
+    nombre_url = st.text_input("Título del enlace")
+    url = st.text_input("URL (https://...)")
+    
+    if st.button("Guardar enlace"):
+        if url and nombre_url:
+            enlaces_lista.append((nombre_url, url))
+            nuevo_contenido = "\n".join([f"{nombre}::{enlace}" for nombre, enlace in enlaces_lista])
+            subir_a_blob(f"{azure_prefix}enlaces.txt", nuevo_contenido.encode("utf-8"))
+            get_enlaces.clear()
+            st.success("✅ Enlace guardado correctamente.")
+            st.rerun()
+        else:
+            st.warning("El título y la URL no pueden estar vacíos.")
 
 # Mostrar y permitir eliminar los enlaces
 if enlaces_lista:
     st.markdown("---")
     for i, (nombre, enlace) in enumerate(enlaces_lista):
-        col1, col2 = st.columns([0.9, 0.1])
+        col1, col2 = st.columns([0.5, 0.5])
         with col1:
-            st.markdown(f'🔗 [{nombre}]({enlace})')
+            st.markdown(f"""
+                <p style='font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem 0;'>
+                    🔗 <a href="{enlace}" target="_blank" style="text-decoration: none; color: #0066cc;">
+                        {nombre}
+                    </a>
+                </p>
+            """, unsafe_allow_html=True)
         with col2:
             if "subir" in permisos and st.button("🗑️", key=f"eliminar_enlace_{i}", help="Eliminar enlace"):
                 enlaces_lista.pop(i)
