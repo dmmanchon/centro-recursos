@@ -30,11 +30,15 @@ import urllib.parse
 # Mailjet para enviar enlaces de recuperación automáticos (https://app.mailjet.com/onboarding)
 
 # Configuración de Azure Blob Storage desde secrets
-AZURE_CONNECTION_STRING = st.secrets["AZURE_CONNECTION_STRING"]
-AZURE_CONTAINER_NAME = "archivos-app"
+# Conexiones y Clientes (Cacheado)
+@st.cache_resource
+def get_container_client():
+    """Crea y devuelve un cliente para el contenedor de Azure, cacheado para reutilización."""
+    blob_service_client = BlobServiceClient.from_connection_string(st.secrets["AZURE_CONNECTION_STRING"])
+    container_client = blob_service_client.get_container_client("archivos-app")
+    return container_client
 
-blob_service_client = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
-container_client = blob_service_client.get_container_client(AZURE_CONTAINER_NAME)
+container_client = get_container_client()
 
 # Configuración del servidor SMTP (correo)
 SMTP_SERVER = st.secrets["SMTP_SERVER"]
@@ -59,6 +63,7 @@ SECRET_KEY = st.secrets["SECRET_KEY"]
 SALT = "salt-recovery"
 serializer = URLSafeTimedSerializer(SECRET_KEY)
 
+@st.cache_data
 def cargar_usuarios_desde_blob():
     blob_client = container_client.get_blob_client("usuarios.xlsx")
     stream = BytesIO()
@@ -72,6 +77,15 @@ def guardar_usuarios_en_blob(df):
     df.to_excel(stream, index=False)
     stream.seek(0)
     blob_client.upload_blob(stream, overwrite=True)
+
+@st.cache_data(ttl="5m") # El caché expira cada 5 minutos para reflejar cambios de otros usuarios
+def get_archivos_area(prefix):
+    """Obtiene y cachea la lista de archivos de un área específica en Azure."""
+    archivos = []
+    for blob in container_client.list_blobs(name_starts_with=prefix):
+        if not blob.name.endswith(".meta.json") and not blob.name.endswith("enlaces.txt"):
+            archivos.append((blob.name, blob.last_modified))
+    return archivos
 
 def send_recovery_email(mail_destino: str, token: str):
     # El token ya está en formato URL-safe, no lo volvemos a codificar
@@ -147,12 +161,14 @@ if token_param:
                 usuarios_df = cargar_usuarios_desde_blob()
                 usuarios_df.loc[usuarios_df["mail"] == email, "contraseña"] = hashed
                 guardar_usuarios_en_blob(usuarios_df)
+                cargar_usuarios_desde_blob.clear() 
                 st.success("🔄 Contraseña actualizada. Por favor vuelve a iniciar sesión.")
             else:
                 st.error("❌ Las contraseñas no coinciden.")
 
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
+
 
 # --- LOGIN ---
 usuarios_df = cargar_usuarios_desde_blob()
@@ -282,7 +298,6 @@ area_map = {
 }
 
 # Sidebar con logo y temporada
-
 if "usuario" in st.session_state:
     st.sidebar.markdown("&nbsp;") 
 
@@ -355,10 +370,7 @@ def icono_archivo(nombre_archivo):
 
 
 # --- LISTADO DE ARCHIVOS EN SIDEBAR ---
-archivos_sidebar = []
-for blob in container_client.list_blobs(name_starts_with=azure_prefix):
-    if not blob.name.endswith(".meta.json") and not blob.name.endswith("enlaces.txt"):
-        archivos_sidebar.append((blob.name, blob.last_modified))
+archivos_sidebar = get_archivos_area(azure_prefix)
 
 # Ordenar por fecha de modificación
 archivos_sidebar.sort(key=lambda x: x[1], reverse=True)
@@ -496,9 +508,9 @@ if "subir" in permisos:
             }
             meta_str = json.dumps(meta, ensure_ascii=False)
             subir_a_blob(f"{blob_name}.meta.json", meta_str.encode("utf-8"))
-
+            get_archivos_area.clear()
             st.success(f"✅ Archivo **{original_name}** subido.")
-            # st.rerun() # Opcional: para limpiar el widget de subida tras el éxito
+            st.rerun()
 
 
 # --- VISUALIZACIÓN Y GESTIÓN DE ARCHIVOS ---
@@ -574,11 +586,13 @@ for chunk in chunks:
                 meta["comentario"] = comentario
                 meta_str = json.dumps(meta, ensure_ascii=False)
                 subir_a_blob(blob_name + ".meta.json", meta_str.encode("utf-8"))
+                get_archivos_area.clear()
                 st.success("Comentario actualizado.")
 
             if st.button("🗑️ Eliminar archivo", key=f"eliminar_{blob_name}"):
                 eliminar_blob(blob_name)
                 eliminar_blob(blob_name + ".meta.json")
+                get_archivos_area.clear()
                 st.warning("Archivo eliminado")
                 st.rerun()
 
