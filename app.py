@@ -78,14 +78,45 @@ def guardar_usuarios_en_blob(df):
     stream.seek(0)
     blob_client.upload_blob(stream, overwrite=True)
 
-@st.cache_data(ttl="5m") # El caché expira cada 5 minutos para reflejar cambios de otros usuarios
+@st.cache_data(ttl="5m")
 def get_archivos_area(prefix):
-    """Obtiene y cachea la lista de archivos de un área específica en Azure."""
-    archivos = []
+    """
+    Obtiene y cachea una lista de diccionarios, cada uno con los datos y metadatos de un archivo.
+    """
+    archivos_con_meta = []
     for blob in container_client.list_blobs(name_starts_with=prefix):
         if not blob.name.endswith(".meta.json") and not blob.name.endswith("enlaces.txt"):
-            archivos.append((blob.name, blob.last_modified))
-    return archivos
+            meta = {}
+            try:
+                # Intenta descargar y parsear el archivo de metadatos asociado
+                meta_blob_name = f"{blob.name}.meta.json"
+                meta_bytes = container_client.get_blob_client(meta_blob_name).download_blob().readall()
+                meta = json.loads(meta_bytes)
+            except Exception:
+                # Si no hay metadatos, se usan valores por defecto
+                meta = {"nombre_original": Path(blob.name).name, "comentario": "", "usuario": "N/A", "fecha": "N/A"}
+
+            archivos_con_meta.append({
+                "blob_name": blob.name,
+                "last_modified": blob.last_modified,
+                "meta": meta
+            })
+    return archivos_con_meta
+
+@st.cache_data(ttl="5m")
+def get_enlaces(prefix):
+    """Obtiene y cachea la lista de enlaces compartidos desde enlaces.txt."""
+    enlaces = []
+    enlace_blob_path = f"{prefix}enlaces.txt"
+    try:
+        enlaces_bytes = container_client.get_blob_client(enlace_blob_path).download_blob().readall()
+        for line in enlaces_bytes.decode("utf-8").splitlines():
+            if "::" in line:
+                nombre, enlace = line.strip().split("::", 1)
+                enlaces.append((nombre, enlace))
+    except Exception:
+        pass # Si no existe el archivo, devuelve una lista vacía
+    return enlaces
 
 def send_recovery_email(mail_destino: str, token: str):
     # El token ya está en formato URL-safe, no lo volvemos a codificar
@@ -127,6 +158,30 @@ def send_recovery_email(mail_destino: str, token: str):
         st.success("✅ Enlace de recuperación enviado correctamente.")
     except Exception as e:
         st.error(f"❌ Error al enviar correo: {e}")
+
+# Funciones auxiliares
+def generar_id_archivo(nombre_archivo):
+    base = Path(nombre_archivo).stem
+    base = base.lower().replace(" ", "_")
+    base = re.sub(r'\W+', '', base)
+    return f"id_{base}"
+
+def icono_archivo(nombre_archivo):
+    ext = Path(nombre_archivo).suffix.lower()
+    if ext == ".pdf":
+        return "📄"
+    elif ext in [".doc", ".docx"]:
+        return "📝"
+    elif ext in [".ppt", ".pptx"]:
+        return "📊"
+    elif ext in [".xlsx", ".xls", ".csv"]:
+        return "📈"
+    elif ext in [".mp4", ".mov"]:
+        return "🎥"
+    elif ext in [".jpg", ".jpeg", ".png", ".gif"]:
+        return "🖼️"
+    else:
+        return "📁"
 
 # Procesar token desde URL
 params      = st.query_params
@@ -329,69 +384,25 @@ else:
 # --- DEFINICIÓN DE PREFIJO PARA BLOB STORAGE ---
 azure_prefix = area_map[area] + "/" 
 
-
-# --- ENLACES EN SIDEBAR ---
-sidebar_enlaces = []
-enlace_blob_path = f"{azure_prefix}enlaces.txt"
-try:
-    enlaces_bytes = container_client.get_blob_client(enlace_blob_path).download_blob().readall()
-    for line in enlaces_bytes.decode("utf-8").splitlines():
-        try:
-            nombre, enlace = line.strip().split("::")
-            sidebar_enlaces.append((nombre, enlace))
-        except:
-            continue
-except Exception:
-    pass  # Si no existe el blob de enlaces, no se muestra nada
-
-# Funciones auxiliares
-def generar_id_archivo(nombre_archivo):
-    base = Path(nombre_archivo).stem
-    base = base.lower().replace(" ", "_")
-    base = re.sub(r'\W+', '', base)
-    return f"id_{base}"
-
-def icono_archivo(nombre_archivo):
-    ext = Path(nombre_archivo).suffix.lower()
-    if ext == ".pdf":
-        return "📄"
-    elif ext in [".doc", ".docx"]:
-        return "📝"
-    elif ext in [".ppt", ".pptx"]:
-        return "📊"
-    elif ext in [".xlsx", ".xls", ".csv"]:
-        return "📈"
-    elif ext in [".mp4", ".mov"]:
-        return "🎥"
-    elif ext in [".jpg", ".jpeg", ".png", ".gif"]:
-        return "🖼️"
-    else:
-        return "📁"
-
-
-# --- LISTADO DE ARCHIVOS EN SIDEBAR ---
-archivos_sidebar = get_archivos_area(azure_prefix)
+# Llamamos a las funciones cacheadas UNA SOLA VEZ aquí.
+enlaces_lista = get_enlaces(azure_prefix)
+archivos_sidebar = get_archivos_area(azure_prefix) 
 
 # Ordenar por fecha de modificación
-archivos_sidebar.sort(key=lambda x: x[1], reverse=True)
+archivos_sidebar.sort(key=lambda x: x["last_modified"], reverse=True)
 
+# --- LISTADO DE ARCHIVOS EN SIDEBAR ---
 with st.sidebar.expander(f"📂 Archivos disponibles: {len(archivos_sidebar)}"):
-    for blob_name, last_mod in archivos_sidebar:
-        file_name = blob_name.split("/")[-1]
-        meta_name = f"{blob_name}.meta.json"
-        try:
-            meta_bytes = container_client.get_blob_client(meta_name).download_blob().readall()
-            meta = json.loads(meta_bytes)
-            visible_name = meta.get("nombre_original", file_name)
-        except:
-            visible_name = file_name
-
+    for archivo_info in archivos_sidebar:
+        # La nueva estructura de datos es un diccionario
+        visible_name = archivo_info["meta"].get("nombre_original", Path(archivo_info["blob_name"]).name)
         ancla = generar_id_archivo(visible_name)
-        icono = icono_archivo(file_name)
+        icono = icono_archivo(visible_name)
         st.markdown(f"- {icono} [{visible_name}](#{ancla})")
 
-with st.sidebar.expander(f"🔗 Enlaces compartidos: {len(sidebar_enlaces)}"):
-    for nombre, enlace in sidebar_enlaces:
+# --- ENLACES EN SIDEBAR (usando la variable ya cargada) ---
+with st.sidebar.expander(f"🔗 Enlaces compartidos: {len(enlaces_lista)}"):
+    for nombre, enlace in enlaces_lista:
         st.markdown(f"- [{nombre}]({enlace})")
 
 
@@ -537,18 +548,11 @@ elif orden == "Nombre Z-A":
 
 # Aplicar filtro
 filtered_files = []
-for blob_name, mod in archivos_sidebar:
-    try:
-        meta_bytes = container_client.get_blob_client(blob_name + ".meta.json").download_blob().readall()
-        meta = json.loads(meta_bytes)
-    except:
-        meta = {}
-
-    nombre = meta.get("nombre_original", Path(blob_name).name).lower()
-    comentario = meta.get("comentario", "").lower()
-
+for archivo_info in archivos_sidebar:
+    nombre = archivo_info["meta"].get("nombre_original", "").lower()
+    comentario = archivo_info["meta"].get("comentario", "").lower()
     if search_query in nombre or search_query in comentario:
-        filtered_files.append((blob_name, meta))
+        filtered_files.append(archivo_info)
 
 # Mostrar archivos en cuadrícula
 chunks = [filtered_files[i:i + num_cols] for i in range(0, len(filtered_files), num_cols)]
