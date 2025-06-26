@@ -495,7 +495,7 @@ if "subir" in permisos:
 
                     meta_str = json.dumps(meta, ensure_ascii=False)
                     subir_a_blob(meta_blob_name, meta_str.encode("utf-8"))
-
+                    get_archivos_area.clear()
                     st.success(f"✅ Archivo **{original_name}** sobrescrito correctamente.")
             with col2:
                 if st.button("❌ Cancelar subida"):
@@ -536,16 +536,6 @@ with col2:
     vista = st.selectbox("Vista", ["1 columna", "2 columnas", "3 columnas"],index=1)
     num_cols = int(vista.split()[0])
 
-# Aplicar orden
-if orden == "Más recientes":
-    archivos_sidebar.sort(key=lambda x: x[1], reverse=True)
-elif orden == "Más antiguos":
-    archivos_sidebar.sort(key=lambda x: x[1])
-elif orden == "Nombre A-Z":
-    archivos_sidebar.sort(key=lambda x: x[0].lower())
-elif orden == "Nombre Z-A":
-    archivos_sidebar.sort(key=lambda x: x[0].lower(), reverse=True)
-
 # Aplicar filtro
 filtered_files = []
 for archivo_info in archivos_sidebar:
@@ -554,12 +544,26 @@ for archivo_info in archivos_sidebar:
     if search_query in nombre or search_query in comentario:
         filtered_files.append(archivo_info)
 
+# Aplicar orden
+if orden == "Más recientes":
+    # Ordenamos por la fecha de modificación del blob
+    filtered_files.sort(key=lambda x: x["last_modified"], reverse=True)
+elif orden == "Más antiguos":
+    filtered_files.sort(key=lambda x: x["last_modified"])
+elif orden == "Nombre A-Z":
+    # Ordenamos por el nombre original guardado en los metadatos
+    filtered_files.sort(key=lambda x: x["meta"].get("nombre_original", "").lower())
+elif orden == "Nombre Z-A":
+    filtered_files.sort(key=lambda x: x["meta"].get("nombre_original", "").lower(), reverse=True)
+
 # Mostrar archivos en cuadrícula
 chunks = [filtered_files[i:i + num_cols] for i in range(0, len(filtered_files), num_cols)]
 for chunk in chunks:
     cols = st.columns(num_cols)
-    for (blob_name, meta), col in zip(chunk, cols):
+    for archivo_info, col in zip(chunk, cols):
         with col:
+            blob_name = archivo_info["blob_name"]
+            meta = archivo_info["meta"]
             blob_path = Path(blob_name)
             original = meta.get("nombre_original", blob_path.name)
             suffix = blob_path.suffix.lower()
@@ -605,64 +609,42 @@ for chunk in chunks:
 
 # --- ENLACES COMPARTIDOS ---
 st.markdown("### 🔗 Enlaces compartidos")
-nombre_url = st.text_input("Título")
-url = st.text_input("Introduce un enlace (https://...)")
 
-if "subir" in permisos and st.button("Guardar enlace"):
-    if url and nombre_url:
-        # Descargar enlaces actuales
-        enlaces_blob = f"{azure_prefix}enlaces.txt"
-        try:
-            enlaces_bytes = container_client.get_blob_client(enlaces_blob).download_blob().readall()
-            contenido_actual = enlaces_bytes.decode("utf-8")
-        except:
-            contenido_actual = ""
+if "subir" in permisos:
+    with st.form("form_nuevo_enlace"):
+        st.markdown("Añadir nuevo enlace:")
+        nombre_url = st.text_input("Título del enlace")
+        url = st.text_input("URL (https://...)")
+        
+        if st.form_submit_button("Guardar enlace"):
+            if url and nombre_url:
+                enlaces_lista.append((nombre_url, url))
+                nuevo_contenido = "\n".join([f"{nombre}::{enlace}" for nombre, enlace in enlaces_lista])
+                subir_a_blob(f"{azure_prefix}enlaces.txt", nuevo_contenido.encode("utf-8"))
+                get_enlaces.clear()
+                st.success("✅ Enlace guardado correctamente.")
+                st.rerun()
+            else:
+                st.warning("El título y la URL no pueden estar vacíos.")
 
-        nuevo_contenido = contenido_actual + f"{nombre_url}::{url}\n"
-        subir_a_blob(enlaces_blob, nuevo_contenido.encode("utf-8"))
-        st.success("✅ Enlace guardado correctamente.")
-        st.rerun()
 
-# Leer y cargar los enlaces compartidos
-enlaces_blob = f"{azure_prefix}enlaces.txt"
-enlaces_lista = []
-
-try:
-    enlaces_bytes = container_client.get_blob_client(enlaces_blob).download_blob().readall()
-    for line in enlaces_bytes.decode("utf-8").splitlines():
-        try:
-            nombre, enlace = line.strip().split("::")
-            enlaces_lista.append((nombre, enlace))
-        except:
-            continue
-except:
-    enlaces_lista = []
-
-# Permitir eliminar los enlaces compartidos
+# Mostrar y permitir eliminar los enlaces
 if enlaces_lista:
     st.markdown("---")
-    # Título y papelera
     for i, (nombre, enlace) in enumerate(enlaces_lista):
-        col1, col2 = st.columns([0.5, 0.5])
+        col1, col2 = st.columns([0.9, 0.1])
         with col1:
-            st.markdown(f"""
-                <p style='font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem 0;'>
-                    🔗 <a href="{enlace}" target="_blank" style="text-decoration: none; color: #0066cc;">
-                        {nombre}
-                    </a>
-                </p>
-            """, unsafe_allow_html=True)
+            st.markdown(f'🔗 [{nombre}]({enlace})')
         with col2:
-            st.markdown("<div style='display: flex; justify-content: flex-start;'>", unsafe_allow_html=True)
-            if st.button("🗑️", key=f"eliminar_enlace_{i}"):
+            if "subir" in permisos and st.button("🗑️", key=f"eliminar_enlace_{i}", help="Eliminar enlace"):
                 enlaces_lista.pop(i)
                 nuevo_contenido = "\n".join([f"{n}::{u}" for n, u in enlaces_lista])
-                subir_a_blob(enlaces_blob, nuevo_contenido.encode("utf-8"))
+                subir_a_blob(f"{azure_prefix}enlaces.txt", nuevo_contenido.encode("utf-8"))
+                get_enlaces.clear()
                 st.success("✅ Enlace eliminado.")
                 st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
 else:
-    st.info("No hay enlaces aún.")
+    st.info("No hay enlaces compartidos en esta área.")
 
 
 
