@@ -609,28 +609,89 @@ for chunk in chunks:
             st.markdown("---")
 
 
-# --- ENLACES COMPARTIDOS ---
-st.markdown("### 🔗 Enlaces compartidos")
+# # --- ENLACES COMPARTIDOS ---
+# st.markdown("### 🔗 Enlaces compartidos")
 
-if "subir" in permisos:
-    st.markdown("Añadir nuevo enlace:")
-    nombre_url = st.text_input("Título del enlace")
-    url = st.text_input("URL (https://...)")
+# if "subir" in permisos:
+#     st.markdown("Añadir nuevo enlace:")
+#     nombre_url = st.text_input("Título del enlace")
+#     url = st.text_input("URL (https://...)")
     
-    if st.button("Guardar enlace"):
-        if url and nombre_url:
-            enlaces_lista.append((nombre_url, url))
-            nuevo_contenido = "\n".join([f"{nombre}::{enlace}" for nombre, enlace in enlaces_lista])
-            subir_a_blob(f"{azure_prefix}enlaces.txt", nuevo_contenido.encode("utf-8"))
-            get_enlaces.clear()
-            st.success("✅ Enlace guardado correctamente.")
-            st.rerun()
-        else:
-            st.warning("El título y la URL no pueden estar vacíos.")
+#     if st.button("Guardar enlace"):
+#         if url and nombre_url:
+#             enlaces_lista.append((nombre_url, url))
+#             nuevo_contenido = "\n".join([f"{nombre}::{enlace}" for nombre, enlace in enlaces_lista])
+#             subir_a_blob(f"{azure_prefix}enlaces.txt", nuevo_contenido.encode("utf-8"))
+#             get_enlaces.clear()
+#             st.success("✅ Enlace guardado correctamente.")
+#             st.rerun()
+#         else:
+#             st.warning("El título y la URL no pueden estar vacíos.")
 
-# Mostrar y permitir eliminar los enlaces
+# # Mostrar y permitir eliminar los enlaces
+# if enlaces_lista:
+#     st.markdown("---")
+#     for i, (nombre, enlace) in enumerate(enlaces_lista):
+#         col1, col2 = st.columns([0.5, 0.5])
+#         with col1:
+#             st.markdown(f"""
+#                 <p style='font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem 0;'>
+#                     🔗 <a href="{enlace}" target="_blank" style="text-decoration: none; color: #0066cc;">
+#                         {nombre}
+#                     </a>
+#                 </p>
+#             """, unsafe_allow_html=True)
+#         with col2:
+#             if "subir" in permisos and st.button("🗑️", key=f"eliminar_enlace_{i}", help="Eliminar enlace"):
+#                 enlaces_lista.pop(i)
+#                 nuevo_contenido = "\n".join([f"{n}::{u}" for n, u in enlaces_lista])
+#                 subir_a_blob(f"{azure_prefix}enlaces.txt", nuevo_contenido.encode("utf-8"))
+#                 get_enlaces.clear()
+#                 st.success("✅ Enlace eliminado.")
+#                 st.rerun()
+# else:
+#     st.info("No hay enlaces compartidos en esta área.")
+
+
+# --- ENLACES COMPARTIDOS (ANTIGUO) ---
+st.markdown("### 🔗 Enlaces compartidos")
+nombre_url = st.text_input("Título")
+url = st.text_input("Introduce un enlace (https://...)")
+
+if "subir" in permisos and st.button("Guardar enlace"):
+    if url and nombre_url:
+        # Descargar enlaces actuales
+        enlaces_blob = f"{azure_prefix}enlaces.txt"
+        try:
+            enlaces_bytes = container_client.get_blob_client(enlaces_blob).download_blob().readall()
+            contenido_actual = enlaces_bytes.decode("utf-8")
+        except:
+            contenido_actual = ""
+
+        nuevo_contenido = contenido_actual + f"{nombre_url}::{url}\n"
+        subir_a_blob(enlaces_blob, nuevo_contenido.encode("utf-8"))
+        st.success("✅ Enlace guardado correctamente.")
+        st.rerun()
+
+# Leer y cargar los enlaces compartidos
+enlaces_blob = f"{azure_prefix}enlaces.txt"
+enlaces_lista = []
+
+try:
+    enlaces_bytes = container_client.get_blob_client(enlaces_blob).download_blob().readall()
+    for line in enlaces_bytes.decode("utf-8").splitlines():
+        try:
+            nombre, enlace = line.strip().split("::")
+            enlaces_lista.append((nombre, enlace))
+        except:
+            continue
+except:
+    enlaces_lista = []
+
+# Permitir eliminar los enlaces compartidos
 if enlaces_lista:
     st.markdown("---")
+    # Título y papelera
     for i, (nombre, enlace) in enumerate(enlaces_lista):
         col1, col2 = st.columns([0.5, 0.5])
         with col1:
@@ -642,15 +703,13 @@ if enlaces_lista:
                 </p>
             """, unsafe_allow_html=True)
         with col2:
-            if "subir" in permisos and st.button("🗑️", key=f"eliminar_enlace_{i}", help="Eliminar enlace"):
+            st.markdown("<div style='display: flex; justify-content: flex-start;'>", unsafe_allow_html=True)
+            if st.button("🗑️", key=f"eliminar_enlace_{i}"):
                 enlaces_lista.pop(i)
                 nuevo_contenido = "\n".join([f"{n}::{u}" for n, u in enlaces_lista])
-                subir_a_blob(f"{azure_prefix}enlaces.txt", nuevo_contenido.encode("utf-8"))
-                get_enlaces.clear()
+                subir_a_blob(enlaces_blob, nuevo_contenido.encode("utf-8"))
                 st.success("✅ Enlace eliminado.")
                 st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 else:
-    st.info("No hay enlaces compartidos en esta área.")
-
-
-
+    st.info("No hay enlaces aún.")
