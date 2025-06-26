@@ -579,7 +579,8 @@ for chunk in chunks:
             if st.button("🗑️ Eliminar archivo", key=f"eliminar_{blob_name}"):
                 eliminar_blob(blob_name)
                 eliminar_blob(blob_name + ".meta.json")
-                st.warning("Archivo eliminado. Recarga para ver los cambios.")
+                st.warning("Archivo eliminado")
+                st.rerun()
 
             st.markdown("---")
 
