@@ -2,6 +2,7 @@ import streamlit as st
 from pathlib import Path
 import os
 from datetime import datetime
+import pytz
 import pandas as pd
 from PIL import Image
 import json
@@ -428,7 +429,9 @@ def find_existing_blob_by_original_name(original_name_to_find, prefix):
                 continue
     return None
 
-#--- SUBIDA DE ARCHIVOS ---
+def fecha_actual_madrid():
+    return datetime.now(pytz.timezone("Europe/Madrid")).strftime("%Y-%m-%d %H:%M:%S")
+
 if "subir" in permisos:
     st.markdown("### 📤 Subida de archivos")
     comentario_input = st.text_area("Comentario o descripción (opcional)", key="comentario_subida")
@@ -463,7 +466,7 @@ if "subir" in permisos:
                         meta = {} # Si no hay meta, se crea uno nuevo
 
                     meta["usuario"] = st.session_state.usuario
-                    meta["fecha"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    meta["fecha"] = fecha_actual_madrid()
                     meta["comentario"] = comentario_input.strip()
                     meta["nombre_original"] = original_name # Asegurarse que se mantiene
 
@@ -477,7 +480,7 @@ if "subir" in permisos:
                     # No se hace nada, el rerun limpiará el estado
         else:
             # 3. SI NO EXISTE, PROCEDER CON LA SUBIDA NORMAL
-            timestamp_fn = datetime.now().strftime("%Y%m%d-%H%M%S")
+            timestamp_fn = fecha_actual_madrid()
             safe_filename = f"{timestamp_fn}_{original_name}"
             blob_name = f"{azure_prefix}{safe_filename}"
 
@@ -487,7 +490,7 @@ if "subir" in permisos:
             # Crear metadatos
             meta = {
                 "usuario": st.session_state.usuario,
-                "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "fecha": fecha_actual_madrid(),
                 "comentario": comentario_input.strip(),
                 "nombre_original": original_name
             }
@@ -496,37 +499,6 @@ if "subir" in permisos:
 
             st.success(f"✅ Archivo **{original_name}** subido.")
             # st.rerun() # Opcional: para limpiar el widget de subida tras el éxito
-
-
-# if "subir" in permisos:
-#     st.markdown("### 📤 Subida de archivos")
-#     comentario_input = st.text_area("Comentario o descripción (opcional)")
-#     uploaded_file = st.file_uploader(
-#         "Arrastra un archivo o haz clic en ‘Browse files’ para seleccionarlo desde tu dispositivo",
-#         type=["pdf", "doc", "docx", "ppt", "pptx", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"]
-#     )
-#     label_visibility="collapsed"
-
-#     if uploaded_file:
-#         original_name = uploaded_file.name
-#         timestamp_fn = datetime.now().strftime("%Y%m%d-%H%M%S")
-#         safe_filename = f"{timestamp_fn}_{original_name}"
-#         blob_name = f"{azure_prefix}{safe_filename}"
-
-#         # Subir archivo
-#         subir_a_blob(blob_name, uploaded_file.getvalue())
-
-#         # Crear metadatos
-#         meta = {
-#             "usuario": st.session_state.usuario,
-#             "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-#             "comentario": comentario_input.strip(),
-#             "nombre_original": original_name
-#         }
-#         meta_str = json.dumps(meta, ensure_ascii=False)
-#         subir_a_blob(f"{blob_name}.meta.json", meta_str.encode("utf-8"))
-
-#         st.success(f"✅ Archivo **{original_name}** subido.")
 
 
 # --- VISUALIZACIÓN Y GESTIÓN DE ARCHIVOS ---
