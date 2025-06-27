@@ -609,10 +609,10 @@ for chunk in chunks:
             st.markdown("---")
 
 
-# --- ENLACES COMPARTIDOS (OPTIMIZADO Y CON ESTILO) ---
+# --- ENLACES COMPARTIDOS ---
 st.markdown("### 🔗 Enlaces compartidos")
 
-# --- Formulario para añadir un nuevo enlace (sin st.form para evitar el recuadro) ---
+# Formulario para añadir un nuevo enlace
 if "subir" in permisos:
     nombre_url = st.text_input("Título")
     url = st.text_input("Introduce un enlace (https://...)")
@@ -620,33 +620,22 @@ if "subir" in permisos:
     if st.button("Guardar enlace"):
         # Se comprueba que el título no esté vacío y la URL sea válida
         if url and "https://" in url and nombre_url:
-            # 1. Se añade el nuevo enlace a la lista que ya tenemos en memoria (cargada del caché)
             enlaces_lista.append((nombre_url, url))
-
-            # 2. Se re-escribe el archivo en Azure con la lista completa y actualizada
             nuevo_contenido = "\n".join([f"{nombre}::{enlace}" for nombre, enlace in enlaces_lista])
             subir_a_blob(f"{azure_prefix}enlaces.txt", nuevo_contenido.encode("utf-8"))
-
-            # 3. Se limpia el caché para que la próxima carga obtenga la nueva versión
             get_enlaces.clear()
             st.success("✅ Enlace guardado correctamente.")
             st.rerun()
         else:
             st.warning("El título y la URL (debe incluir https://) no pueden estar vacíos.")
 
-# --- Visualización de los enlaces existentes ---
-# Se utiliza la variable 'enlaces_lista', que se cargó una sola vez al principio de la app
+# Visualización de los enlaces existentes
 if enlaces_lista:
     st.markdown("---")
 
-    # Se itera sobre la lista para mostrar cada enlace
     for i, (nombre, enlace) in enumerate(enlaces_lista):
-
-        # 2. Se mantiene la estructura de columnas, pero con un ratio ajustado para evitar solapamientos
-        col1, col2 = st.columns([0.9, 0.1])
-
+        col1, col2 = st.columns([0.5, 0.5])
         with col1:
-            # 1. Se mantiene exactamente tu código HTML/CSS para el estilo del título
             st.markdown(f"""
                 <p style='font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem 0;'>
                     🔗 <a href="{enlace}" target="_blank" style="text-decoration: none; color: #0066cc;">
@@ -656,16 +645,12 @@ if enlaces_lista:
             """, unsafe_allow_html=True)
 
         with col2:
-            # Se alinea el botón a la izquierda dentro de su propia columna
             st.markdown("<div style='display: flex; justify-content: flex-start;'>", unsafe_allow_html=True)
             if "subir" in permisos and st.button("🗑️", key=f"eliminar_enlace_{i}", help="Eliminar enlace"):
-
-                # Lógica de eliminación (mucho más eficiente)
-                enlaces_lista.pop(i) # Se elimina de la lista en memoria
+                enlaces_lista.pop(i)
                 nuevo_contenido = "\n".join([f"{n}::{u}" for n, u in enlaces_lista])
                 subir_a_blob(f"{azure_prefix}enlaces.txt", nuevo_contenido.encode("utf-8"))
-
-                get_enlaces.clear() # Se limpia el caché
+                get_enlaces.clear()
                 st.success("✅ Enlace eliminado.")
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
