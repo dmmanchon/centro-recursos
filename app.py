@@ -526,149 +526,88 @@ if "subir" in permisos:
             st.rerun()
 
 
-# # --- VISUALIZACIÓN Y GESTIÓN DE ARCHIVOS ---
-# st.markdown("---")
-# st.markdown("### 📁 Archivos disponibles")
+# --- VISUALIZACIÓN Y GESTIÓN DE ARCHIVOS ---
+st.markdown("---")
+st.markdown("### 📁 Archivos disponibles")
 
-# # Controles de Vista
-# col1, col2 = st.columns(2)
-# with col1:
-#     orden = st.selectbox("Ordenar por", ["Más recientes", "Más antiguos", "Nombre A-Z", "Nombre Z-A"],index=0)
-# with col2:
-#     vista = st.selectbox("Vista", ["1 columna", "2 columnas", "3 columnas"],index=1)
-#     num_cols = int(vista.split()[0])
+# Controles de Vista
+col1, col2 = st.columns(2)
+with col1:
+    orden = st.selectbox("Ordenar por", ["Más recientes", "Más antiguos", "Nombre A-Z", "Nombre Z-A"],index=0)
+with col2:
+    vista = st.selectbox("Vista", ["1 columna", "2 columnas", "3 columnas"],index=1)
+    num_cols = int(vista.split()[0])
 
-# # Aplicar filtro
-# filtered_files = []
-# for archivo_info in archivos_sidebar:
-#     nombre = archivo_info["meta"].get("nombre_original", "").lower()
-#     comentario = archivo_info["meta"].get("comentario", "").lower()
-#     if search_query in nombre or search_query in comentario:
-#         filtered_files.append(archivo_info)
+# Aplicar filtro
+filtered_files = []
+for archivo_info in archivos_sidebar:
+    nombre = archivo_info["meta"].get("nombre_original", "").lower()
+    comentario = archivo_info["meta"].get("comentario", "").lower()
+    if search_query in nombre or search_query in comentario:
+        filtered_files.append(archivo_info)
 
-# # Aplicar orden
-# if orden == "Más recientes":
-#     # Ordenamos por la fecha de modificación del blob
-#     filtered_files.sort(key=lambda x: x["last_modified"], reverse=True)
-# elif orden == "Más antiguos":
-#     filtered_files.sort(key=lambda x: x["last_modified"])
-# elif orden == "Nombre A-Z":
-#     # Ordenamos por el nombre original guardado en los metadatos
-#     filtered_files.sort(key=lambda x: x["meta"].get("nombre_original", "").lower())
-# elif orden == "Nombre Z-A":
-#     filtered_files.sort(key=lambda x: x["meta"].get("nombre_original", "").lower(), reverse=True)
+# Aplicar orden
+if orden == "Más recientes":
+    # Ordenamos por la fecha de modificación del blob
+    filtered_files.sort(key=lambda x: x["last_modified"], reverse=True)
+elif orden == "Más antiguos":
+    filtered_files.sort(key=lambda x: x["last_modified"])
+elif orden == "Nombre A-Z":
+    # Ordenamos por el nombre original guardado en los metadatos
+    filtered_files.sort(key=lambda x: x["meta"].get("nombre_original", "").lower())
+elif orden == "Nombre Z-A":
+    filtered_files.sort(key=lambda x: x["meta"].get("nombre_original", "").lower(), reverse=True)
 
-# # Mostrar archivos en cuadrícula
-# chunks = [filtered_files[i:i + num_cols] for i in range(0, len(filtered_files), num_cols)]
-# for chunk in chunks:
-#     cols = st.columns(num_cols)
-#     for archivo_info, col in zip(chunk, cols):
-#         with col:
-#             blob_name = archivo_info["blob_name"]
-#             meta = archivo_info["meta"]
-#             blob_path = Path(blob_name)
-#             original = meta.get("nombre_original", blob_path.name)
-#             suffix = blob_path.suffix.lower()
-#             ancla = generar_id_archivo(original)
+# Mostrar archivos en cuadrícula
+chunks = [filtered_files[i:i + num_cols] for i in range(0, len(filtered_files), num_cols)]
+for chunk in chunks:
+    cols = st.columns(num_cols)
+    for archivo_info, col in zip(chunk, cols):
+        with col:
+            blob_name = archivo_info["blob_name"]
+            meta = archivo_info["meta"]
+            blob_path = Path(blob_name)
+            original = meta.get("nombre_original", blob_path.name)
+            suffix = blob_path.suffix.lower()
+            ancla = generar_id_archivo(original)
 
-#             st.markdown(f"<div id='{ancla}'></div>", unsafe_allow_html=True)
-#             st.markdown(f"### {original}", unsafe_allow_html=True)
-#             usuario = meta.get("usuario", "desconocido")
-#             fecha = meta.get("fecha", "")
-#             st.markdown(f"*Subido por {usuario} el {fecha}*", unsafe_allow_html=True)
+            st.markdown(f"<div id='{ancla}'></div>", unsafe_allow_html=True)
+            st.markdown(f"### {original}", unsafe_allow_html=True)
+            usuario = meta.get("usuario", "desconocido")
+            fecha = meta.get("fecha", "")
+            st.markdown(f"*Subido por {usuario} el {fecha}*", unsafe_allow_html=True)
 
-#             contenido = descargar_blob(blob_name)
-#             if suffix == ".pdf":
-#                 st.download_button("📥 Descargar PDF", data=contenido, file_name=blob_path.name)
-#             elif suffix in [".xlsx", ".xls", ".csv"]:
-#                 st.download_button("📥 Descargar Excel/CSV", data=contenido, file_name=blob_path.name)
-#             elif suffix in [".mp4", ".mov"]:
-#                 st.download_button("📥 Descargar Vídeo", data=contenido, file_name=blob_path.name)
-#                 st.video(contenido)
-#             elif suffix in [".jpg", ".jpeg", ".png", ".gif"]:
-#                 st.download_button("📥 Descargar Imagen", data=contenido, file_name=blob_path.name)
-#                 st.image(contenido, use_container_width=True)
-#             else:
-#                 st.download_button("📥 Descargar Archivo", data=contenido, file_name=blob_path.name)
+            contenido = descargar_blob(blob_name)
+            if suffix == ".pdf":
+                st.download_button("📥 Descargar PDF", data=contenido, file_name=blob_path.name)
+            elif suffix in [".xlsx", ".xls", ".csv"]:
+                st.download_button("📥 Descargar Excel/CSV", data=contenido, file_name=blob_path.name)
+            elif suffix in [".mp4", ".mov"]:
+                st.download_button("📥 Descargar Vídeo", data=contenido, file_name=blob_path.name)
+                st.video(contenido)
+            elif suffix in [".jpg", ".jpeg", ".png", ".gif"]:
+                st.download_button("📥 Descargar Imagen", data=contenido, file_name=blob_path.name)
+                st.image(contenido, use_container_width=True)
+            else:
+                st.download_button("📥 Descargar Archivo", data=contenido, file_name=blob_path.name)
 
-#             comentario = st.text_area("💬 Comentario", value=meta.get("comentario", ""), key=f"comentario_{blob_name}")
-#             if st.button("💾 Actualizar comentario", key=f"guardar_comentario_{blob_name}"):
-#                 meta["comentario"] = comentario
-#                 meta_str = json.dumps(meta, ensure_ascii=False)
-#                 subir_a_blob(blob_name + ".meta.json", meta_str.encode("utf-8"))
-#                 get_archivos_area.clear()
-#                 st.success("Comentario actualizado.")
+            comentario = st.text_area("💬 Comentario", value=meta.get("comentario", ""), key=f"comentario_{blob_name}")
+            if st.button("💾 Actualizar comentario", key=f"guardar_comentario_{blob_name}"):
+                meta["comentario"] = comentario
+                meta_str = json.dumps(meta, ensure_ascii=False)
+                subir_a_blob(blob_name + ".meta.json", meta_str.encode("utf-8"))
+                get_archivos_area.clear()
+                st.success("Comentario actualizado.")
 
-#             if st.button("🗑️ Eliminar archivo", key=f"eliminar_{blob_name}"):
-#                 eliminar_blob(blob_name)
-#                 eliminar_blob(blob_name + ".meta.json")
-#                 get_archivos_area.clear()
-#                 st.warning("Archivo eliminado")
-#                 st.rerun()
-
-#             st.markdown("---")
-
-
-# --- ENLACES COMPARTIDOS (ANTIGUO) ---
-st.markdown("### 🔗 Enlaces compartidos")
-nombre_url = st.text_input("Título")
-url = st.text_input("Introduce un enlace (https://...)")
-
-if "subir" in permisos and st.button("Guardar enlace"):
-    if url and nombre_url:
-        # Descargar enlaces actuales
-        enlaces_blob = f"{azure_prefix}enlaces.txt"
-        try:
-            enlaces_bytes = container_client.get_blob_client(enlaces_blob).download_blob().readall()
-            contenido_actual = enlaces_bytes.decode("utf-8")
-        except:
-            contenido_actual = ""
-
-        nuevo_contenido = contenido_actual + f"{nombre_url}::{url}\n"
-        subir_a_blob(enlaces_blob, nuevo_contenido.encode("utf-8"))
-        st.success("✅ Enlace guardado correctamente.")
-        st.rerun()
-
-# Leer y cargar los enlaces compartidos
-enlaces_blob = f"{azure_prefix}enlaces.txt"
-enlaces_lista = []
-
-try:
-    enlaces_bytes = container_client.get_blob_client(enlaces_blob).download_blob().readall()
-    for line in enlaces_bytes.decode("utf-8").splitlines():
-        try:
-            nombre, enlace = line.strip().split("::")
-            enlaces_lista.append((nombre, enlace))
-        except:
-            continue
-except:
-    enlaces_lista = []
-
-# Permitir eliminar los enlaces compartidos
-if enlaces_lista:
-    st.markdown("---")
-    # Título y papelera
-    for i, (nombre, enlace) in enumerate(enlaces_lista):
-        col1, col2 = st.columns([0.5, 0.5])
-        with col1:
-            st.markdown(f"""
-                <p style='font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem 0;'>
-                    🔗 <a href="{enlace}" target="_blank" style="text-decoration: none; color: #0066cc;">
-                        {nombre}
-                    </a>
-                </p>
-            """, unsafe_allow_html=True)
-        with col2:
-            st.markdown("<div style='display: flex; justify-content: flex-start;'>", unsafe_allow_html=True)
-            if st.button("🗑️", key=f"eliminar_enlace_{i}"):
-                enlaces_lista.pop(i)
-                nuevo_contenido = "\n".join([f"{n}::{u}" for n, u in enlaces_lista])
-                subir_a_blob(enlaces_blob, nuevo_contenido.encode("utf-8"))
-                st.success("✅ Enlace eliminado.")
+            if st.button("🗑️ Eliminar archivo", key=f"eliminar_{blob_name}"):
+                eliminar_blob(blob_name)
+                eliminar_blob(blob_name + ".meta.json")
+                get_archivos_area.clear()
+                st.warning("Archivo eliminado")
                 st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-else:
-    st.info("No hay enlaces aún.")
+
+            st.markdown("---")
+
 
 # --- ENLACES COMPARTIDOS (OPTIMIZADO Y CON ESTILO) ---
 st.markdown("### 🔗 Enlaces compartidos")
@@ -732,3 +671,5 @@ if enlaces_lista:
             st.markdown("</div>", unsafe_allow_html=True)
 else:
     st.info("No hay enlaces compartidos en esta área.")
+
+
