@@ -262,14 +262,19 @@ cookies = EncryptedCookieManager(
 )
 if not cookies.ready():
     st.stop()
-
-# Si no hay usuario en sesión pero sí en cookies, restaurar
-if "usuario" not in st.session_state and cookies.get("usuario"):
-    st.session_state.usuario = cookies.get("usuario")
-    st.session_state.area = cookies.get("area")
-    st.session_state.permisos = cookies.get("permisos").split(",")
-    st.session_state.rol = cookies.get("rol")
  
+ # Si se acaba de cerrar sesión, no hacemos nada en esta recarga para dar tiempo a que las cookies se borren
+if not st.session_state.get("logout_flag"):
+    # Si no hay usuario en sesión pero sí en cookies, restaurar
+    if "usuario" not in st.session_state and cookies.get("usuario"):
+        st.session_state.usuario = cookies.get("usuario")
+        st.session_state.area = cookies.get("area")
+        st.session_state.permisos = cookies.get("permisos").split(",")
+        st.session_state.rol = cookies.get("rol")
+# Limpiamos la bandera para la siguiente interacción
+if "logout_flag" in st.session_state:
+    del st.session_state.logout_flag
+
 
 # --- LOGO Y TÍTULO --
 if "usuario" not in st.session_state and not cookies.get("usuario"):
@@ -362,6 +367,7 @@ if "usuario" in st.session_state:
         del cookies["rol"]
         cookies.save()
         st.session_state.clear()
+        st.session_state.logout_flag = True
         st.rerun()
 
 # --- VARIABLES DE SESIÓN ---
