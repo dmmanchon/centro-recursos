@@ -52,8 +52,15 @@ def get_container_client():
     blob_service_client = BlobServiceClient.from_connection_string(st.secrets["AZURE_CONNECTION_STRING"])
     container_client = blob_service_client.get_container_client("archivos-app")
     return container_client
-
 container_client = get_container_client()
+
+# Inicializar cookies con clave secreta desde st.secrets
+cookies = EncryptedCookieManager(
+    prefix="app_",
+    password=st.secrets["SECRET_KEY"]
+)
+if not cookies.ready():
+    st.stop()
 
 # Configuración del servidor SMTP (correo)
 SMTP_SERVER = st.secrets["SMTP_SERVER"]
@@ -214,6 +221,27 @@ def icono_archivo(nombre_archivo):
 params      = st.query_params
 token_param = params.get("token")
 
+
+
+# --- GESTOR DE ACCIONES (Logout) ---
+if params.get("action") == "logout":
+    
+    # Borramos las cookies del navegador
+    if cookies.get("usuario"): del cookies["usuario"]
+    if cookies.get("area"): del cookies["area"]
+    if cookies.get("permisos"): del cookies["permisos"]
+    if cookies.get("rol"): del cookies["rol"]
+    cookies.save()
+    
+    # Limpiamos la sesión del servidor
+    st.session_state.clear()
+    
+    # Forzamos una redirección final a la página de inicio limpia
+    st.components.v1.html(f"<script>window.location.href = '{APP_URL}';</script>", height=0)
+    st.stop()
+
+
+
 if token_param:
 
     try:
@@ -255,20 +283,14 @@ if token_param:
 # --- LOGIN ---
 usuarios_df = cargar_usuarios_desde_blob()
 
-# Inicializar cookies con clave secreta desde st.secrets
-cookies = EncryptedCookieManager(
-    prefix="app_",
-    password=st.secrets["SECRET_KEY"]
-)
-if not cookies.ready():
-    st.stop()
+
  
-# Si no hay usuario en sesión pero sí en cookies, restaurar
-if "usuario" not in st.session_state and cookies.get("usuario"):
-    st.session_state.usuario = cookies.get("usuario")
-    st.session_state.area = cookies.get("area")
-    st.session_state.permisos = cookies.get("permisos").split(",")
-    st.session_state.rol = cookies.get("rol")
+# # Si no hay usuario en sesión pero sí en cookies, restaurar
+# if "usuario" not in st.session_state and cookies.get("usuario"):
+#     st.session_state.usuario = cookies.get("usuario")
+#     st.session_state.area = cookies.get("area")
+#     st.session_state.permisos = cookies.get("permisos").split(",")
+#     st.session_state.rol = cookies.get("rol")
 
 # --- LOGO Y TÍTULO --
 if "usuario" not in st.session_state and not cookies.get("usuario"):
@@ -352,31 +374,17 @@ if "usuario" not in st.session_state:
 
     st.stop()
 
-# Botón de logout (con redirección forzada)
+
+
+
+# --- Botón de logout (Inicia el proceso de logout en dos pasos) ---
 if "usuario" in st.session_state:
     if st.sidebar.button("Cerrar sesión"):
-        # 1. Borramos las cookies del gestor y las guardamos (esto envía la orden al navegador)
-        # Es importante que el gestor de cookies se llame 'cookies'
-        if cookies.get("usuario"): del cookies["usuario"]
-        if cookies.get("area"): del cookies["area"]
-        if cookies.get("permisos"): del cookies["permisos"]
-        if cookies.get("rol"): del cookies["rol"]
-        cookies.save()
-        # 2. Limpiamos la sesión del servidor
-        st.session_state.clear()
-        # 3. Inyectamos JS para forzar una recarga COMPLETA del navegador a la URL raíz.
-        #    Esto es más robusto que st.rerun() para problemas de cookies.
-        st.components.v1.html(
-            f"""
-            <script>
-                // Forzamos la recarga de la página a la URL base de la app
-                window.location.href = "{APP_URL}";
-            </script>
-            """,
-            height=0
-        )
-        # 4. Detenemos la ejecución del script actual para evitar errores
-        st.stop()
+        # La única acción del botón ahora es cambiar la URL para activar el gestor de acciones
+        st.query_params["action"] = "logout"
+
+
+
 
 # --- VARIABLES DE SESIÓN ---
 usuario_actual = st.session_state.usuario
