@@ -29,6 +29,21 @@ import urllib.parse
 # (https://portal.azure.com/#@autoanalyzerpro.com/resource/subscriptions/31d6b443-05de-4364-8ae6-c879d9350f7b/resourcegroups/app-recursos/providers/Microsoft.Storage/storageAccounts/recursoscentro1/containersList)
 # Mailjet para enviar enlaces de recuperación automáticos (https://app.mailjet.com/onboarding)
 
+
+# Configuración general de la app ---
+st.set_page_config(
+    page_title="Centro de Recursos Colaborativo",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
+
+TIPOS_ARCHIVO = [
+    "pdf", "doc", "docx", "ppt", "pptx",
+    "xlsx", "xls", "csv", "mp4", "mov",
+    "jpg", "jpeg", "png", "gif"
+]
+
 # Configuración de Azure Blob Storage desde secrets
 # Conexiones y Clientes (Cacheado)
 @st.cache_resource
@@ -48,14 +63,6 @@ SMTP_PASS = st.secrets["SMTP_PASS"]
 
 # URL base para enlaces de recuperación
 APP_URL = st.secrets["APP_URL"]
-
-# Configuración general de la app ---
-st.set_page_config(
-    page_title="Centro de Recursos Colaborativo",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-st.markdown("<div id='inicio'></div>", unsafe_allow_html=True)
 
 # --- AUTENTICACIÓN ---
 
@@ -462,7 +469,7 @@ if "subir" in permisos:
     comentario_input = st.text_area("Comentario o descripción (opcional)", key="comentario_subida")
     uploaded_file = st.file_uploader(
         "Arrastra un archivo o haz clic en ‘Browse files’ para seleccionarlo desde tu dispositivo",
-        type=["pdf", "doc", "docx", "ppt", "pptx", "xlsx", "xls", "csv", "mp4", "mov", "jpg", "jpeg", "png", "gif"]
+        type=TIPOS_ARCHIVO
     )
 
     if uploaded_file:
