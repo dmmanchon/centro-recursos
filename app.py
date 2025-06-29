@@ -269,10 +269,7 @@ if "usuario" not in st.session_state and cookies.get("usuario"):
     st.session_state.area = cookies.get("area")
     st.session_state.permisos = cookies.get("permisos").split(",")
     st.session_state.rol = cookies.get("rol")
-
-if "logout" in st.session_state:
-    del st.session_state["logout"]
-    st.stop()  
+ 
 
 # --- LOGO Y TÍTULO --
 if "usuario" not in st.session_state and not cookies.get("usuario"):
@@ -359,11 +356,12 @@ if "usuario" not in st.session_state:
 # Botón de logout (borrar cookies + sesión)
 if "usuario" in st.session_state:
     if st.sidebar.button("Cerrar sesión"):
-        for key in ["usuario", "area", "permisos", "rol"]:
-            cookies[key] = ""
+        del cookies["usuario"]
+        del cookies["area"]
+        del cookies["permisos"]
+        del cookies["rol"]
         cookies.save()
         st.session_state.clear()
-        st.session_state["logout"] = True
         st.rerun()
 
 # --- VARIABLES DE SESIÓN ---
