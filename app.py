@@ -237,10 +237,8 @@ if params.get("action") == "logout":
     st.session_state.clear()
     
     # Forzamos una redirección final a la página de inicio limpia
-    st.components.v1.html(f"<script>window.location.href = '{APP_URL}';</script>", height=0)
+    st.components.v1.html(f"<script>window.location.href = '{st.secrets['APP_URL']}';</script>", height=0)
     st.stop()
-
-
 
 if token_param:
 
