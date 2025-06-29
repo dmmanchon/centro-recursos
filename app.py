@@ -224,17 +224,14 @@ token_param = params.get("token")
 
 # --- GESTOR DE ACCIONES (Logout) ---
 if params.get("action") == "logout":
-    
     # Borramos las cookies del navegador
     if cookies.get("usuario"): del cookies["usuario"]
     if cookies.get("area"): del cookies["area"]
     if cookies.get("permisos"): del cookies["permisos"]
     if cookies.get("rol"): del cookies["rol"]
     cookies.save()
-    
     # Limpiamos la sesión del servidor
     st.session_state.clear()
-    
     # Forzamos una redirección final a la página de inicio limpia
     st.components.v1.html(f"<script>window.location.href = '{st.secrets['APP_URL']}';</script>", height=0)
     st.stop()
@@ -276,6 +273,16 @@ if token_param:
         st.markdown("</div>", unsafe_allow_html=True)
         st.stop()
 
+# Si la sesión del servidor está vacía pero tenemos cookies válidas, restauramos la sesión.
+if "usuario" not in st.session_state and cookies.get("usuario"):
+    st.session_state.usuario = cookies.get("usuario")
+    st.session_state.area = cookies.get("area")
+    permisos_cookie = cookies.get("permisos")
+    if permisos_cookie:
+        st.session_state.permisos = permisos_cookie.split(",")
+    else:
+        st.session_state.permisos = []
+    st.session_state.rol = cookies.get("rol")
 
 # --- LOGIN ---
 usuarios_df = cargar_usuarios_desde_blob()
