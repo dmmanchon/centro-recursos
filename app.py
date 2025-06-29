@@ -263,15 +263,18 @@ cookies = EncryptedCookieManager(
 if not cookies.ready():
     st.stop()
  
-# Limpiamos la sesión por completo y evitamos la restauración desde cookies.
+# Si se acaba de cerrar sesión, no hacemos nada en esta recarga para dar tiempo a que las cookies se borren
 if st.session_state.get("logout_flag"):
-    st.session_state.clear()
-# Si la sesión está vacía y NO venimos de un logout, intentamos restaurar desde cookies
-elif "usuario" not in st.session_state and cookies.get("usuario"):
-    st.session_state.usuario = cookies.get("usuario")
-    st.session_state.area = cookies.get("area")
-    st.session_state.permisos = cookies.get("permisos").split(",")
-    st.session_state.rol = cookies.get("rol")
+    # No restaurar sesión en este ciclo
+    del st.session_state["logout_flag"]
+    st.stop()
+else:
+    # Si no hay usuario en sesión pero sí en cookies, restaurar
+    if "usuario" not in st.session_state and cookies.get("usuario"):
+        st.session_state.usuario = cookies.get("usuario")
+        st.session_state.area = cookies.get("area")
+        st.session_state.permisos = cookies.get("permisos").split(",")
+        st.session_state.rol = cookies.get("rol")
 
 
 # --- LOGO Y TÍTULO --
@@ -357,15 +360,19 @@ if "usuario" not in st.session_state:
     st.stop()
 
 # Botón de logout (borrar cookies + sesión)
-if "usuario" in st.session_state:
-    if st.sidebar.button("Cerrar sesión"):
-        del cookies["usuario"]
-        del cookies["area"]
-        del cookies["permisos"]
-        del cookies["rol"]
-        cookies.save()
-        st.session_state.logout_flag = True
-        st.rerun()
+if st.sidebar.button("Cerrar sesión"):
+    del cookies["usuario"]
+    del cookies["area"]
+    del cookies["permisos"]
+    del cookies["rol"]
+    cookies.save()    
+    # En lugar de limpiar todo el session_state
+    st.session_state.pop("usuario", None)
+    st.session_state.pop("area", None)
+    st.session_state.pop("permisos", None)
+    st.session_state.pop("rol", None)
+    st.session_state["logout_flag"] = True
+    st.rerun()
 
 # --- VARIABLES DE SESIÓN ---
 usuario_actual = st.session_state.usuario
