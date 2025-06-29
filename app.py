@@ -222,7 +222,6 @@ params      = st.query_params
 token_param = params.get("token")
 
 
-
 # --- GESTOR DE ACCIONES (Logout) ---
 if params.get("action") == "logout":
     
@@ -281,17 +280,8 @@ if token_param:
 # --- LOGIN ---
 usuarios_df = cargar_usuarios_desde_blob()
 
-
- 
-# # Si no hay usuario en sesión pero sí en cookies, restaurar
-# if "usuario" not in st.session_state and cookies.get("usuario"):
-#     st.session_state.usuario = cookies.get("usuario")
-#     st.session_state.area = cookies.get("area")
-#     st.session_state.permisos = cookies.get("permisos").split(",")
-#     st.session_state.rol = cookies.get("rol")
-
 # --- LOGO Y TÍTULO --
-if "usuario" not in st.session_state and not cookies.get("usuario"):
+if "usuario" not in st.session_state:
     logo_path = Path("assets/logo.png")
     if logo_path.exists():
         try:
@@ -372,16 +362,10 @@ if "usuario" not in st.session_state:
 
     st.stop()
 
-
-
-
 # --- Botón de logout (Inicia el proceso de logout en dos pasos) ---
 if "usuario" in st.session_state:
     if st.sidebar.button("Cerrar sesión"):
-        # La única acción del botón ahora es cambiar la URL para activar el gestor de acciones
         st.query_params["action"] = "logout"
-
-
 
 
 # --- VARIABLES DE SESIÓN ---
