@@ -236,8 +236,23 @@ def render_main_app():
         logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
         st.sidebar.markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;'><span style='font-weight: bold; font-size: 3em;'>25/26</span><img src='data:image/png;base64,{logo_base64}' style='height: 120px;' /></div>", unsafe_allow_html=True)
     
+    # --- Botón de logout con redirección forzada del navegador ---
     if st.sidebar.button("Cerrar sesión"):
-        st.query_params["action"] = "logout"
+        st.session_state.clear()
+        if cookies.get("usuario"): del cookies["usuario"]
+        if cookies.get("area"): del cookies["area"]
+        if cookies.get("permisos"): del cookies["permisos"]
+        if cookies.get("rol"): del cookies["rol"]
+        cookies.save()
+        st.components.v1.html(
+            f"""
+            <script>
+                window.location.href = "{st.secrets['APP_URL']}";
+            </script>
+            """,
+            height=0
+        )
+        st.stop()
 
     st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
     st.sidebar.success(f"{st.session_state.usuario} ({st.session_state.rol})")
@@ -481,14 +496,7 @@ token = params.get("token")
 action = params.get("action")
 
 # 1. GESTIONAR ACCIONES ESPECIALES
-if action == "logout":
-    for key in ["usuario", "area", "permisos", "rol"]:
-        if cookies.get(key): del cookies[key]
-    cookies.save()
-    st.session_state.clear()
-    st.query_params.clear()
-
-elif token:
+if token: # <- Se convierte en el primer 'if'
     serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
     render_password_reset_page(token, serializer)
 
