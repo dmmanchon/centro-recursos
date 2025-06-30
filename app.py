@@ -227,7 +227,7 @@ def render_password_reset_page(token, serializer):
     except BadSignature:
         st.error("❌ Enlace inválido. Asegúrate de copiarlo completo desde tu correo.")
 
-def render_main_app():
+def render_main_app(cookies): # Ahora pasamos 'cookies' como argumento
     """Dibuja toda la interfaz de la aplicación principal una vez logueado."""
     # --- SIDEBAR ---
     st.sidebar.markdown("&nbsp;")
@@ -236,23 +236,21 @@ def render_main_app():
         logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
         st.sidebar.markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;'><span style='font-weight: bold; font-size: 3em;'>25/26</span><img src='data:image/png;base64,{logo_base64}' style='height: 120px;' /></div>", unsafe_allow_html=True)
     
-    # --- Botón de logout con redirección forzada del navegador ---
+    # --- Botón de logout (Lógica final) ---
     if st.sidebar.button("Cerrar sesión"):
-        st.session_state.clear()
+        # 1. Intentamos borrar las cookies del navegador.
         if cookies.get("usuario"): del cookies["usuario"]
         if cookies.get("area"): del cookies["area"]
         if cookies.get("permisos"): del cookies["permisos"]
         if cookies.get("rol"): del cookies["rol"]
         cookies.save()
-        st.components.v1.html(
-            f"""
-            <script>
-                window.location.href = "{st.secrets['APP_URL']}";
-            </script>
-            """,
-            height=0
-        )
-        st.stop()
+
+        # 2. Limpiamos la sesión del servidor.
+        st.session_state.clear()
+        
+        # 3. Establecemos la bandera para la siguiente recarga y recargamos.
+        st.session_state.just_logged_out = True
+        st.rerun()
 
     st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
     st.sidebar.success(f"{st.session_state.usuario} ({st.session_state.rol})")
@@ -266,7 +264,9 @@ def render_main_app():
     azure_prefix = AREA_MAP[area] + "/"
     enlaces_lista = get_enlaces(azure_prefix)
     archivos_sidebar = get_archivos_area(azure_prefix)
-    archivos_sidebar.sort(key=lambda x: x["last_modified"], reverse=True)
+    
+    if archivos_sidebar:
+        archivos_sidebar.sort(key=lambda x: x["last_modified"], reverse=True)
     
     with st.sidebar.expander(f"📂 Archivos disponibles: {len(archivos_sidebar)}"):
         for archivo_info in archivos_sidebar:
@@ -483,7 +483,7 @@ def render_links_section(enlaces, azure_prefix):
         st.info("No hay enlaces compartidos en esta área.")
 
 
-# --- BLOQUE DE CONTROL PRINCIPAL ---
+# --- BLOQUE DE CONTROL PRINCIPAL (VERSIÓN CORREGIDA Y FINAL) ---
 
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide", initial_sidebar_state="expanded")
 
@@ -491,26 +491,23 @@ cookies = EncryptedCookieManager(password=st.secrets["SECRET_KEY"], prefix="app_
 if not cookies.ready():
     st.stop()
 
-params = st.query_params
-token = params.get("token")
-action = params.get("action")
-
-# 1. GESTIONAR ACCIONES ESPECIALES
-if token: # <- Se convierte en el primer 'if'
-    serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
-    render_password_reset_page(token, serializer)
-
+# --- Lógica de Autenticación y Enrutamiento ---
+if st.session_state.get("just_logged_out"):
+    del st.session_state.just_logged_out
 else:
-    # 2. INTENTAR RESTAURAR SESIÓN DESDE COOKIES
     if "usuario" not in st.session_state and cookies.get("usuario"):
         st.session_state.usuario = cookies.get("usuario")
         st.session_state.area = cookies.get("area")
         permisos_cookie = cookies.get("permisos")
         st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
         st.session_state.rol = cookies.get("rol")
-    
-    # 3. DECISIÓN FINAL: MOSTRAR APP PRINCIPAL O LOGIN
-    if "usuario" in st.session_state:
-        render_main_app()
+
+if "usuario" in st.session_state:
+    render_main_app(cookies)
+else:
+    token = st.query_params.get("token")
+    if token:
+        serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
+        render_password_reset_page(token, serializer)
     else:
         render_login_page(cookies)
