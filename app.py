@@ -174,6 +174,10 @@ def render_login_page(cookies):
                 usuarios_df = cargar_usuarios_desde_blob()
                 user_row = usuarios_df[usuarios_df["mail"] == usuario_input]
                 if not user_row.empty and bcrypt.checkpw(contrasena_input.encode(), user_row.iloc[0]["contraseña"].encode()):
+                    # Limpiamos el '?action=logout' de la URL antes de continuar
+                    if "action" in st.query_params:
+                        st.query_params.clear()
+
                     st.session_state.usuario = user_row.iloc[0]["usuario"]
                     st.session_state.area = user_row.iloc[0]["area"]
                     st.session_state.permisos = user_row.iloc[0]["permisos"].split(",")
@@ -235,21 +239,8 @@ def render_main_app(cookies):
         logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
         st.sidebar.markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;'><span style='font-weight: bold; font-size: 3em;'>25/26</span><img src='data:image/png;base64,{logo_base64}' style='height: 120px;' /></div>", unsafe_allow_html=True)
 
-    # --- Botón de logout con la estrategia de "cookie envenenada" ---
     if st.sidebar.button("Cerrar sesión"):
-        
-        # 1. Limpiamos la sesión del servidor
-        st.session_state.clear()
-        
-        # 2. "Envenenamos" la cookie en lugar de intentar borrarla
-        cookies["usuario"] = "logged_out" # Escribimos un valor que significa "sesión cerrada"
-        cookies["area"] = ""
-        cookies["permisos"] = ""
-        cookies["rol"] = ""
-        cookies.save()
-        
-        # 3. Recargamos la página
-        st.rerun()
+        st.query_params["action"] = "logout"
 
     st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
     st.sidebar.success(f"{st.session_state.usuario} ({st.session_state.rol})")
@@ -482,7 +473,7 @@ def render_links_section(enlaces, azure_prefix):
         st.info("No hay enlaces compartidos en esta área.")
 
 
-# --- BLOQUE DE CONTROL PRINCIPAL (VERSIÓN FINAL Y ROBUSTA) ---
+# --- BLOQUE DE CONTROL PRINCIPAL (VERSIÓN FINAL INTEGRADA) ---
 
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide", initial_sidebar_state="expanded")
 
@@ -494,28 +485,23 @@ params = st.query_params
 token = params.get("token")
 action = params.get("action")
 
-# 1. GESTIONAR LOGOUT COMO ACCIÓN PRIORITARIA
+# --- Lógica de Enrutamiento Central ---
+
+# 1. PRIORIDAD MÁXIMA: El usuario acaba de pedir cerrar sesión
 if action == "logout":
     st.session_state.clear()
-    if cookies.get("usuario"): del cookies["usuario"]
-    if cookies.get("area"): del cookies["area"]
-    if cookies.get("permisos"): del cookies["permisos"]
-    if cookies.get("rol"): del cookies["rol"]
-    cookies.save()
-    
-    # Redirigimos a la URL limpia para un estado final estable
-    st.query_params.clear()
-    st.rerun()
+    render_login_page(cookies) # Mostramos el login
+    st.stop() # Detenemos el script aquí para no mostrar nada más
 
-# 2. GESTIONAR RESETEO DE CONTRASEÑA
+# 2. SEGUNDA PRIORIDAD: El usuario viene de un enlace de reseteo
 elif token:
     serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
     render_password_reset_page(token, serializer)
 
-# 3. LÓGICA NORMAL DE LA APLICACIÓN
+# 3. LÓGICA NORMAL
 else:
-    # Intentar restaurar sesión desde cookies, IGNORANDO la cookie "envenenada"
-    if "usuario" not in st.session_state and cookies.get("usuario") and cookies.get("usuario") != "logged_out":
+    # Intentar restaurar sesión desde la cookie "zombi" si es necesario
+    if "usuario" not in st.session_state and cookies.get("usuario"):
         st.session_state.usuario = cookies.get("usuario")
         st.session_state.area = cookies.get("area")
         permisos_cookie = cookies.get("permisos")
@@ -527,4 +513,3 @@ else:
         render_main_app(cookies)
     else:
         render_login_page(cookies)
-
