@@ -236,21 +236,23 @@ def render_main_app(cookies): # Ahora pasamos 'cookies' como argumento
         logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
         st.sidebar.markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;'><span style='font-weight: bold; font-size: 3em;'>25/26</span><img src='data:image/png;base64,{logo_base64}' style='height: 120px;' /></div>", unsafe_allow_html=True)
     
-    # --- Botón de logout (Lógica final) ---
+    # --- Botón de logout con redirección forzada del navegador ---
     if st.sidebar.button("Cerrar sesión"):
-        # 1. Intentamos borrar las cookies del navegador.
         if cookies.get("usuario"): del cookies["usuario"]
         if cookies.get("area"): del cookies["area"]
         if cookies.get("permisos"): del cookies["permisos"]
         if cookies.get("rol"): del cookies["rol"]
         cookies.save()
-
-        # 2. Limpiamos la sesión del servidor.
-        st.session_state.clear()
-        
-        # 3. Establecemos la bandera para la siguiente recarga y recargamos.
-        st.session_state.just_logged_out = True
-        st.rerun()
+        st.session_state.clear()        
+        st.components.v1.html(
+            f"""
+            <script>
+                window.location.href = "{st.secrets['APP_URL']}";
+            </script>
+            """,
+            height=0
+        )
+        st.stop()
 
     st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
     st.sidebar.success(f"{st.session_state.usuario} ({st.session_state.rol})")
@@ -483,7 +485,7 @@ def render_links_section(enlaces, azure_prefix):
         st.info("No hay enlaces compartidos en esta área.")
 
 
-# --- BLOQUE DE CONTROL PRINCIPAL (VERSIÓN CORREGIDA Y FINAL) ---
+# --- BLOQUE DE CONTROL PRINCIPAL ---
 
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide", initial_sidebar_state="expanded")
 
@@ -492,15 +494,12 @@ if not cookies.ready():
     st.stop()
 
 # --- Lógica de Autenticación y Enrutamiento ---
-if st.session_state.get("just_logged_out"):
-    del st.session_state.just_logged_out
-else:
-    if "usuario" not in st.session_state and cookies.get("usuario"):
-        st.session_state.usuario = cookies.get("usuario")
-        st.session_state.area = cookies.get("area")
-        permisos_cookie = cookies.get("permisos")
-        st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
-        st.session_state.rol = cookies.get("rol")
+if "usuario" not in st.session_state and cookies.get("usuario"):
+    st.session_state.usuario = cookies.get("usuario")
+    st.session_state.area = cookies.get("area")
+    permisos_cookie = cookies.get("permisos")
+    st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
+    st.session_state.rol = cookies.get("rol")
 
 if "usuario" in st.session_state:
     render_main_app(cookies)
