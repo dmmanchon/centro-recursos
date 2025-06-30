@@ -234,10 +234,22 @@ def render_main_app(cookies):
     if logo_path.exists():
         logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
         st.sidebar.markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;'><span style='font-weight: bold; font-size: 3em;'>25/26</span><img src='data:image/png;base64,{logo_base64}' style='height: 120px;' /></div>", unsafe_allow_html=True)
-    
+
+    # --- Botón de logout con la estrategia de "cookie envenenada" ---
     if st.sidebar.button("Cerrar sesión"):
-        st.query_params["action"] = "logout"
-        st.rerun() 
+        
+        # 1. Limpiamos la sesión del servidor
+        st.session_state.clear()
+        
+        # 2. "Envenenamos" la cookie en lugar de intentar borrarla
+        cookies["usuario"] = "logged_out" # Escribimos un valor que significa "sesión cerrada"
+        cookies["area"] = ""
+        cookies["permisos"] = ""
+        cookies["rol"] = ""
+        cookies.save()
+        
+        # 3. Recargamos la página
+        st.rerun()
 
     st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
     st.sidebar.success(f"{st.session_state.usuario} ({st.session_state.rol})")
@@ -502,8 +514,8 @@ elif token:
 
 # 3. LÓGICA NORMAL DE LA APLICACIÓN
 else:
-    # Intentar restaurar sesión desde cookies
-    if "usuario" not in st.session_state and cookies.get("usuario"):
+    # Intentar restaurar sesión desde cookies, IGNORANDO la cookie "envenenada"
+    if "usuario" not in st.session_state and cookies.get("usuario") and cookies.get("usuario") != "logged_out":
         st.session_state.usuario = cookies.get("usuario")
         st.session_state.area = cookies.get("area")
         permisos_cookie = cookies.get("permisos")
@@ -515,3 +527,4 @@ else:
         render_main_app(cookies)
     else:
         render_login_page(cookies)
+
