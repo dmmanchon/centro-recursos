@@ -239,28 +239,8 @@ def render_main_app(cookies):
         logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
         st.sidebar.markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;'><span style='font-weight: bold; font-size: 3em;'>25/26</span><img src='data:image/png;base64,{logo_base64}' style='height: 120px;' /></div>", unsafe_allow_html=True)
 
-    # Creamos un enlace HTML que parece un botón de Streamlit
-    st.sidebar.markdown(
-        f"""
-        <a href="?action=logout" target="_self" style="
-            display: inline-block;
-            padding: 0.5em 1em;
-            color: #0d1117;
-            background-color: #FFFFFF;
-            border: 1px solid rgba(49, 51, 63, 0.2);
-            border-radius: 0.5rem;
-            text-decoration: none;
-            font-weight: 500;
-            line-height: 1.6;
-            font-size: 0.875rem;
-            width: 100%;
-            text-align: center;
-        ">
-            Cerrar sesión
-        </a>
-        """,
-        unsafe_allow_html=True
-    )
+    if st.sidebar.button("Cerrar sesión"):
+        st.query_params["action"] = "logout"
 
     st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
     st.sidebar.success(f"{st.session_state.usuario} ({st.session_state.rol})")
@@ -507,13 +487,15 @@ action = params.get("action")
 
 # --- Lógica de Enrutamiento Central ---
 
-# 1. PRIORIDAD MÁXIMA: El usuario pide cerrar sesión a través de la URL
 if action == "logout":
     st.session_state.clear()
-    # Limpiamos la URL para evitar bucles y renderizamos la página de login
-    st.query_params.clear()
-    render_login_page(cookies)
-    st.stop()
+    for k in ["usuario", "area", "permisos", "rol"]:
+        if cookies.get(k): del cookies[k]
+    cookies.save()
+
+    # Redirigimos a una página "limpia" con un parámetro ficticio para forzar nueva renderización
+    st.query_params["logout_done"] = "1"
+    st.rerun()
 
 # 2. SEGUNDA PRIORIDAD: El usuario viene de un enlace de reseteo
 elif token:
@@ -522,7 +504,7 @@ elif token:
 
 # 3. LÓGICA NORMAL
 else:
-    # Intentar restaurar sesión desde la cookie si es necesario
+    # Intentar restaurar sesión desde la cookie "zombi" si es necesario
     if "usuario" not in st.session_state and cookies.get("usuario"):
         st.session_state.usuario = cookies.get("usuario")
         st.session_state.area = cookies.get("area")
