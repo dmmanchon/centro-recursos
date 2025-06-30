@@ -227,32 +227,17 @@ def render_password_reset_page(token, serializer):
     except BadSignature:
         st.error("❌ Enlace inválido. Asegúrate de copiarlo completo desde tu correo.")
 
-def render_main_app(cookies): # Ahora pasamos 'cookies' como argumento
+def render_main_app(cookies):
     """Dibuja toda la interfaz de la aplicación principal una vez logueado."""
-    # --- SIDEBAR ---
     st.sidebar.markdown("&nbsp;")
     logo_path = Path("assets/logo.png")
     if logo_path.exists():
         logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
         st.sidebar.markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;'><span style='font-weight: bold; font-size: 3em;'>25/26</span><img src='data:image/png;base64,{logo_base64}' style='height: 120px;' /></div>", unsafe_allow_html=True)
     
-    # --- Botón de logout con redirección forzada del navegador ---
     if st.sidebar.button("Cerrar sesión"):
-        if cookies.get("usuario"): del cookies["usuario"]
-        if cookies.get("area"): del cookies["area"]
-        if cookies.get("permisos"): del cookies["permisos"]
-        if cookies.get("rol"): del cookies["rol"]
-        cookies.save()
-        st.session_state.clear()        
-        st.components.v1.html(
-            f"""
-            <script>
-                window.location.href = "{st.secrets['APP_URL']}";
-            </script>
-            """,
-            height=0
-        )
-        st.stop()
+        st.query_params["action"] = "logout"
+        st.rerun() 
 
     st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
     st.sidebar.success(f"{st.session_state.usuario} ({st.session_state.rol})")
@@ -485,7 +470,7 @@ def render_links_section(enlaces, azure_prefix):
         st.info("No hay enlaces compartidos en esta área.")
 
 
-# --- BLOQUE DE CONTROL PRINCIPAL ---
+# --- BLOQUE DE CONTROL PRINCIPAL (VERSIÓN FINAL Y ROBUSTA) ---
 
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide", initial_sidebar_state="expanded")
 
@@ -493,20 +478,40 @@ cookies = EncryptedCookieManager(password=st.secrets["SECRET_KEY"], prefix="app_
 if not cookies.ready():
     st.stop()
 
-# --- Lógica de Autenticación y Enrutamiento ---
-if "usuario" not in st.session_state and cookies.get("usuario"):
-    st.session_state.usuario = cookies.get("usuario")
-    st.session_state.area = cookies.get("area")
-    permisos_cookie = cookies.get("permisos")
-    st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
-    st.session_state.rol = cookies.get("rol")
+params = st.query_params
+token = params.get("token")
+action = params.get("action")
 
-if "usuario" in st.session_state:
-    render_main_app(cookies)
+# 1. GESTIONAR LOGOUT COMO ACCIÓN PRIORITARIA
+if action == "logout":
+    st.session_state.clear()
+    if cookies.get("usuario"): del cookies["usuario"]
+    if cookies.get("area"): del cookies["area"]
+    if cookies.get("permisos"): del cookies["permisos"]
+    if cookies.get("rol"): del cookies["rol"]
+    cookies.save()
+    
+    # Redirigimos a la URL limpia para un estado final estable
+    st.query_params.clear()
+    st.rerun()
+
+# 2. GESTIONAR RESETEO DE CONTRASEÑA
+elif token:
+    serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
+    render_password_reset_page(token, serializer)
+
+# 3. LÓGICA NORMAL DE LA APLICACIÓN
 else:
-    token = st.query_params.get("token")
-    if token:
-        serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
-        render_password_reset_page(token, serializer)
+    # Intentar restaurar sesión desde cookies
+    if "usuario" not in st.session_state and cookies.get("usuario"):
+        st.session_state.usuario = cookies.get("usuario")
+        st.session_state.area = cookies.get("area")
+        permisos_cookie = cookies.get("permisos")
+        st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
+        st.session_state.rol = cookies.get("rol")
+    
+    # Decisión final: Mostrar app o login
+    if "usuario" in st.session_state:
+        render_main_app(cookies)
     else:
         render_login_page(cookies)
