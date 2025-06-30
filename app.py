@@ -487,7 +487,6 @@ if action == "logout":
     cookies.save()
     st.session_state.clear()
     st.query_params.clear()
-    st.rerun()
 
 elif token:
     serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
