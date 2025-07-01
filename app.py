@@ -502,15 +502,15 @@ else:
         del st.session_state["logout_done"]
         render_login_page(cookies)
         st.stop()
-
-    if "usuario" not in st.session_state and cookies.get("usuario"):
-        if action != "logout":
+    
+    if "usuario" not in st.session_state:
+        if action != "logout" and cookies.get("usuario"):
             st.session_state.usuario = cookies.get("usuario")
             st.session_state.area = cookies.get("area")
             permisos_cookie = cookies.get("permisos")
             st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
             st.session_state.rol = cookies.get("rol")
-    
+
     if "usuario" in st.session_state:
         render_main_app(cookies)
     else:
