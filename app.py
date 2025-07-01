@@ -491,19 +491,15 @@ if action == "logout":
         if cookies.get(k): del cookies[k]
     cookies.save()
     st.session_state.clear()
+    st.session_state["logout_done"] = True
     st.query_params.clear()
     st.rerun()
-
 elif token:
     serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
     render_password_reset_page(token, serializer)
-
 else:
     if st.session_state.get("logout_done"):
         del st.session_state["logout_done"]
-        for k in ["usuario", "area", "permisos", "rol"]:
-            if cookies.get(k): del cookies[k]
-        cookies.save()
         render_login_page(cookies)
         st.stop()
 
