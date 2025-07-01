@@ -488,28 +488,25 @@ action = params.get("action")
 
 if action == "logout":
     for k in ["usuario", "area", "permisos", "rol"]:
-        if cookies.get(k): del cookies[k]
+        if cookies.get(k):
+            del cookies[k]
     cookies.save()
     st.session_state.clear()
-    st.session_state["logout_done"] = True
     st.query_params.clear()
+    st.experimental_set_query_params()
     st.rerun()
+
 elif token:
     serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
     render_password_reset_page(token, serializer)
+
 else:
-    if st.session_state.get("logout_done"):
-        del st.session_state["logout_done"]
-        render_login_page(cookies)
-        st.stop()
-    
-    if "usuario" not in st.session_state:
-        if action != "logout" and cookies.get("usuario"):
-            st.session_state.usuario = cookies.get("usuario")
-            st.session_state.area = cookies.get("area")
-            permisos_cookie = cookies.get("permisos")
-            st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
-            st.session_state.rol = cookies.get("rol")
+    if "usuario" not in st.session_state and cookies.get("usuario"):
+        st.session_state.usuario = cookies.get("usuario")
+        st.session_state.area = cookies.get("area")
+        permisos_cookie = cookies.get("permisos")
+        st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
+        st.session_state.rol = cookies.get("rol")
 
     if "usuario" in st.session_state:
         render_main_app(cookies)
