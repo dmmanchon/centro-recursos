@@ -487,9 +487,13 @@ token = params.get("token")
 action = params.get("action")
 
 if action == "logout":
-    st.session_state["logout_done"] = True
+    for k in ["usuario", "area", "permisos", "rol"]:
+        if cookies.get(k): del cookies[k]
+    cookies.save()
+    st.session_state.clear()
     st.query_params.clear()
-    st.rerun()
+    render_login_page(cookies)
+    st.stop()
 
 elif token:
     serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
