@@ -236,12 +236,11 @@ def render_main_app(cookies):
         st.sidebar.markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;'><span style='font-weight: bold; font-size: 3em;'>25/26</span><img src='data:image/png;base64,{logo_base64}' style='height: 120px;' /></div>", unsafe_allow_html=True)
 
     if st.sidebar.button("Cerrar sesión"):
-        # Borrado de cookies
         for k in ["usuario", "area", "permisos", "rol"]:
             if cookies.get(k): del cookies[k]
         cookies.save()
         st.session_state.clear()
-        st.experimental_set_query_params(action="logout")
+        st.query_params.update({"action": "logout"}) 
         st.rerun()
 
     st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
@@ -475,7 +474,7 @@ def render_links_section(enlaces, azure_prefix):
         st.info("No hay enlaces compartidos en esta área.")
 
 
-# --- BLOQUE DE CONTROL PRINCIPAL (VERSIÓN FINAL INTEGRADA) ---
+# --- BLOQUE DE CONTROL PRINCIPAL ---
 
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide", initial_sidebar_state="expanded")
 
@@ -488,24 +487,20 @@ token = params.get("token")
 action = params.get("action")
 
 if action == "logout":
-    # Evita que se restaure sesión desde cookies en esta recarga
     st.session_state["logout_done"] = True
     st.query_params.clear()
     st.rerun()
 
-# 2. SEGUNDA PRIORIDAD: El usuario viene de un enlace de reseteo
 elif token:
     serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
     render_password_reset_page(token, serializer)
 
-# 3. LÓGICA NORMAL
 else:
     if st.session_state.get("logout_done"):
         del st.session_state["logout_done"]
         render_login_page(cookies)
         st.stop()
 
-    # Intentar restaurar sesión desde la cookie si es necesario
     if "usuario" not in st.session_state and cookies.get("usuario"):
         st.session_state.usuario = cookies.get("usuario")
         st.session_state.area = cookies.get("area")
@@ -513,7 +508,6 @@ else:
         st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
         st.session_state.rol = cookies.get("rol")
     
-    # Decisión final: Mostrar app o login
     if "usuario" in st.session_state:
         render_main_app(cookies)
     else:
