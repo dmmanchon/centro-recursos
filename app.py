@@ -498,6 +498,9 @@ elif token:
 else:
     if st.session_state.get("logout_done"):
         del st.session_state["logout_done"]
+        for k in ["usuario", "area", "permisos", "rol"]:
+            if cookies.get(k): del cookies[k]
+        cookies.save()
         render_login_page(cookies)
         st.stop()
 
