@@ -487,6 +487,7 @@ token = params.get("token")
 action = params.get("action")
 
 if action == "logout":
+    st.session_state.clear()
     st.session_state.logout_done = True
     for k in ["usuario", "area", "permisos", "rol"]:
         if cookies.get(k):
@@ -505,7 +506,7 @@ elif st.session_state.get("logout_done"):
     st.stop()
 
 else:
-    if "usuario" not in st.session_state and cookies.get("usuario"):
+    if "usuario" not in st.session_state and cookies.get("usuario") and not st.session_state.get("logout_done"):
         st.session_state.usuario = cookies.get("usuario")
         st.session_state.area = cookies.get("area")
         permisos_cookie = cookies.get("permisos")
