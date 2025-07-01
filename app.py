@@ -486,24 +486,31 @@ params = st.query_params
 token = params.get("token")
 action = params.get("action")
 
+# 1. Petición explícita de logout → borrar cookies + session_state + marcar logout_done
 if action == "logout":
     for k in ["usuario", "area", "permisos", "rol"]:
-        if cookies.get(k): del cookies[k]
+        if cookies.get(k):
+            del cookies[k]
     cookies.save()
     st.session_state.clear()
     st.query_params.clear()
     st.session_state["logout_done"] = True
     st.rerun()
 
+# 2. Tras logout → mostrar login y evitar reautenticación
+elif st.session_state.get("logout_done"):
+    del st.session_state["logout_done"]
+    render_login_page(cookies)
+    st.stop()
+
+# 3. Petición de reseteo por token
 elif token:
     serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
     render_password_reset_page(token, serializer)
 
-elif st.session_state.get("logout_done"):
-    render_login_page(cookies)
-    st.stop()
-
+# 4. Flujo normal
 else:
+    # Restaurar sesión desde cookie si existe
     if "usuario" not in st.session_state and cookies.get("usuario"):
         st.session_state.usuario = cookies.get("usuario")
         st.session_state.area = cookies.get("area")
@@ -515,3 +522,4 @@ else:
         render_main_app(cookies)
     else:
         render_login_page(cookies)
+
