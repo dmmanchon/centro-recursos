@@ -492,8 +492,7 @@ if action == "logout":
     cookies.save()
     st.session_state.clear()
     st.query_params.clear()
-    render_login_page(cookies)
-    st.stop()
+    st.rerun()
 
 elif token:
     serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
@@ -509,11 +508,12 @@ else:
         st.stop()
 
     if "usuario" not in st.session_state and cookies.get("usuario"):
-        st.session_state.usuario = cookies.get("usuario")
-        st.session_state.area = cookies.get("area")
-        permisos_cookie = cookies.get("permisos")
-        st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
-        st.session_state.rol = cookies.get("rol")
+        if action != "logout":
+            st.session_state.usuario = cookies.get("usuario")
+            st.session_state.area = cookies.get("area")
+            permisos_cookie = cookies.get("permisos")
+            st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
+            st.session_state.rol = cookies.get("rol")
     
     if "usuario" in st.session_state:
         render_main_app(cookies)
