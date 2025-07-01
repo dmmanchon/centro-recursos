@@ -418,7 +418,7 @@ def render_file_display(archivos, search_query, azure_prefix):
                     st.success("Comentario actualizado.")
                     st.rerun()
 
-                if "borrar" in st.session_state.permisos:
+                if "eliminar" in st.session_state.permisos:
                     if st.button("🗑️ Eliminar", key=f"eliminar_{blob_name}", type="primary"):
                         eliminar_blob(blob_name)
                         eliminar_blob(blob_name + ".meta.json")
@@ -461,7 +461,7 @@ def render_links_section(enlaces, azure_prefix):
                     </p>
                 """, unsafe_allow_html=True)
             with col2:
-                if "borrar" in st.session_state.permisos:
+                if "eliminar" in st.session_state.permisos:
                     st.markdown("<div style='display: flex; justify-content: flex-start; padding-top: 4px;'>", unsafe_allow_html=True)
                     if st.button("🗑️", key=f"eliminar_enlace_{i}", help="Eliminar enlace"):
                         enlaces.pop(i)
@@ -502,6 +502,7 @@ elif token:
 else:
     if st.session_state.get("logout_done"):
         del st.session_state["logout_done"]
+        render_login_page(cookies)
         st.stop()
 
     # Intentar restaurar sesión desde la cookie si es necesario
