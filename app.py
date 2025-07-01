@@ -235,45 +235,14 @@ def render_main_app(cookies):
         logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
         st.sidebar.markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;'><span style='font-weight: bold; font-size: 3em;'>25/26</span><img src='data:image/png;base64,{logo_base64}' style='height: 120px;' /></div>", unsafe_allow_html=True)
 
-    # --- Botón de logout con borrado forzado de cookies mediante JavaScript ---
     if st.sidebar.button("Cerrar sesión"):
-        
-        # 1. Limpiamos la sesión del servidor, esto sí funciona siempre.
+        # Borrado de cookies
+        for k in ["usuario", "area", "permisos", "rol"]:
+            if cookies.get(k): del cookies[k]
+        cookies.save()
         st.session_state.clear()
-        
-        # 2. Creamos el código JavaScript que borra cada cookie individualmente.
-        #    Establecer una fecha de expiración en el pasado es el método estándar para borrar cookies.
-        js_delete_cookie = """
-        <script>
-            function delete_cookie(name, path, domain) {
-                if (get_cookie(name)) {
-                    document.cookie = name + "=" +
-                        ((path) ? ";path=" + path : "") +
-                        ((domain) ? ";domain=" + domain : "") +
-                        ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
-                }
-            }
-            function get_cookie(name) {
-                return document.cookie.split(';').some(c => {
-                    return c.trim().startsWith(name + '=');
-                });
-            }
-
-            delete_cookie('app_usuario', '/');
-            delete_cookie('app_area', '/');
-            delete_cookie('app_permisos', '/');
-            delete_cookie('app_rol', '/');
-
-            // Forzamos una recarga completa de la página desde el servidor.
-            window.location.reload(true);
-        </script>
-        """
-        
-        # 3. Inyectamos el código JavaScript en la página.
-        st.components.v1.html(js_delete_cookie, height=0)
-        
-        # 4. Detenemos la ejecución del script para que no dé errores.
-        st.stop
+        st.experimental_set_query_params(action="logout")
+        st.rerun()
 
     st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
     st.sidebar.success(f"{st.session_state.usuario} ({st.session_state.rol})")
@@ -518,15 +487,11 @@ params = st.query_params
 token = params.get("token")
 action = params.get("action")
 
-# --- Lógica de Enrutamiento Central ---
-
-# 1. PRIORIDAD MÁXIMA: El usuario pide cerrar sesión a través de la URL
 if action == "logout":
-    st.session_state.clear()
-    # Limpiamos la URL para evitar bucles y renderizamos la página de login
+    # Evita que se restaure sesión desde cookies en esta recarga
+    st.session_state["logout_done"] = True
     st.query_params.clear()
-    render_login_page(cookies)
-    st.stop()
+    st.rerun()
 
 # 2. SEGUNDA PRIORIDAD: El usuario viene de un enlace de reseteo
 elif token:
@@ -535,6 +500,10 @@ elif token:
 
 # 3. LÓGICA NORMAL
 else:
+    if st.session_state.get("logout_done"):
+        del st.session_state["logout_done"]
+        st.stop()
+
     # Intentar restaurar sesión desde la cookie si es necesario
     if "usuario" not in st.session_state and cookies.get("usuario"):
         st.session_state.usuario = cookies.get("usuario")
