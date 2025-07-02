@@ -280,26 +280,20 @@ def render_main_app(cookies):
     render_links_section(enlaces_lista, azure_prefix)
 
 def render_upload_section(azure_prefix):
-    """Dibuja la sección para subir archivos con un control de estado explícito."""
+    """Dibuja la sección para subir archivos con reseteo de estado mediante una key dinámica."""
     st.markdown("### 📤 Subida de archivos")
 
-    # --- CONTROL DE ESTADO ---
-    # Si la sesión indica que una acción de subida acaba de completarse, reseteamos.
-    if st.session_state.get('upload_completed'):
-        del st.session_state.upload_completed
-        st.file_uploader(
-            "Arrastra un archivo o haz clic para seleccionarlo",
-            type=TIPOS_ARCHIVO,
-            key=datetime.now().timestamp() # Forzamos un widget nuevo y vacío
-        )
-        return
+    # 1. Aseguramos que existe un contador en la sesión para generar keys únicas
+    if 'uploader_key_counter' not in st.session_state:
+        st.session_state.uploader_key_counter = 0
 
-    # --- LÓGICA NORMAL DE LA INTERFAZ ---
     comentario_input = st.text_area("Comentario o descripción (opcional)", key="comentario_subida")
+    
+    # 2. Creamos el widget usando una key que depende del contador de la sesión
     uploaded_file = st.file_uploader(
         "Arrastra un archivo o haz clic en ‘Browse files’ para seleccionarlo desde tu dispositivo",
         type=TIPOS_ARCHIVO,
-        key="main_uploader"
+        key=f"file_uploader_{st.session_state.uploader_key_counter}"
     )
 
     if uploaded_file:
@@ -312,7 +306,7 @@ def render_upload_section(azure_prefix):
 
             with col1:
                 if st.button("🔄 Sobrescribir archivo existente"):
-                    with st.spinner("Sobrescribiendo archivo..."):
+                    with st.spinner("Sobrescribiendo..."):
                         subir_a_blob(existing_blob_name, uploaded_file.getvalue())
                         meta_bytes = descargar_blob(existing_blob_name + ".meta.json")
                         meta = json.loads(meta_bytes)
@@ -323,37 +317,41 @@ def render_upload_section(azure_prefix):
                         subir_a_blob(existing_blob_name + ".meta.json", meta_str.encode("utf-8"))
                     
                     get_archivos_area.clear()
-                    st.success(f"✅ Archivo **{original_name}** sobrescrito correctamente.")
-                    st.session_state.upload_completed = True
+                    st.success(f"✅ Archivo sobrescrito.")
+                    
+                    # 3. Incrementamos el contador para cambiar la key y forzar el reseteo
+                    st.session_state.uploader_key_counter += 1
                     st.rerun()
 
             with col2:
                 if st.button("❌ Cancelar subida"):
                     st.info("Subida cancelada.")
-                    st.session_state.upload_completed = True
+                    # 3. Incrementamos el contador para cambiar la key y forzar el reseteo
+                    st.session_state.uploader_key_counter += 1
                     st.rerun()
-        
         else:
-            # Lógica para subir un archivo nuevo
-            timestamp_fn = datetime.now(pytz.timezone("Europe/Madrid")).strftime("%Y%m%d-%H%M%S")
-            safe_filename = f"{timestamp_fn}_{original_name}"
-            blob_name = f"{azure_prefix}{safe_filename}"
-            
-            with st.spinner("Subiendo archivo..."):
-                subir_a_blob(blob_name, uploaded_file.getvalue())
-                meta = {
-                    "usuario": st.session_state.usuario,
-                    "fecha": fecha_actual_madrid(),
-                    "comentario": comentario_input.strip(),
-                    "nombre_original": original_name
-                }
-                meta_str = json.dumps(meta, ensure_ascii=False)
-                subir_a_blob(f"{blob_name}.meta.json", meta_str.encode("utf-8"))
-            
-            get_archivos_area.clear()
-            st.success(f"✅ Archivo **{original_name}** subido.")
-            st.session_state.upload_completed = True # Levantar bandera también aquí
-            st.rerun()
+            # Lógica para subir un archivo nuevo, ahora con un botón de confirmación explícito
+            st.info(f"Archivo '{original_name}' listo para ser subido.")
+            if st.button(f"Confirmar subida de '{original_name}'", type="primary"):
+                with st.spinner("Subiendo archivo..."):
+                    timestamp_fn = datetime.now(pytz.timezone("Europe/Madrid")).strftime("%Y%m%d-%H%M%S")
+                    safe_filename = f"{timestamp_fn}_{original_name}"
+                    blob_name = f"{azure_prefix}{safe_filename}"
+                    subir_a_blob(blob_name, uploaded_file.getvalue())
+                    meta = {
+                        "usuario": st.session_state.usuario,
+                        "fecha": fecha_actual_madrid(),
+                        "comentario": comentario_input.strip(),
+                        "nombre_original": original_name
+                    }
+                    meta_str = json.dumps(meta, ensure_ascii=False)
+                    subir_a_blob(f"{blob_name}.meta.json", meta_str.encode("utf-8"))
+                
+                get_archivos_area.clear()
+                st.success(f"✅ Archivo subido.")
+                # 3. Incrementamos el contador para cambiar la key y forzar el reseteo
+                st.session_state.uploader_key_counter += 1
+                st.rerun()
 
 def render_file_display(archivos, search_query, azure_prefix):
     """Dibuja la cuadrícula de archivos filtrados y ordenados."""
