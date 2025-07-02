@@ -418,7 +418,7 @@ def render_file_display(archivos, search_query, azure_prefix):
                     st.rerun()
 
                 if "eliminar" in st.session_state.permisos:
-                    if st.button("🗑️ Eliminar", key=f"eliminar_{blob_name}", type="primary"):
+                    if st.button("🗑️ Eliminar", key=f"eliminar_{blob_name}"):
                         eliminar_blob(blob_name)
                         eliminar_blob(blob_name + ".meta.json")
                         get_archivos_area.clear()
@@ -450,10 +450,10 @@ def render_links_section(enlaces, azure_prefix):
     if enlaces:
         st.markdown("---")
         for i, (nombre, enlace) in enumerate(enlaces):
-            col1, col2 = st.columns([0.9, 0.1])
+            col1, col2 = st.columns([0.5, 0.5])
             with col1:
                 st.markdown(f"""
-                    <p style='font-size: 1.25rem; font-weight: 600; margin: 0;'>
+                    <p style='font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem 0;'>
                         🔗 <a href="{enlace}" target="_blank" style="text-decoration: none; color: #0066cc;">
                             {nombre}
                         </a>
