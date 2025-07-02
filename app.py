@@ -330,28 +330,27 @@ def render_upload_section(azure_prefix):
                     st.session_state.uploader_key_counter += 1
                     st.rerun()
         else:
-            # Lógica para subir un archivo nuevo, ahora con un botón de confirmación explícito
-            st.info(f"Archivo '{original_name}' listo para ser subido.")
-            if st.button(f"Confirmar subida de '{original_name}'", type="primary"):
-                with st.spinner("Subiendo archivo..."):
-                    timestamp_fn = datetime.now(pytz.timezone("Europe/Madrid")).strftime("%Y%m%d-%H%M%S")
-                    safe_filename = f"{timestamp_fn}_{original_name}"
-                    blob_name = f"{azure_prefix}{safe_filename}"
-                    subir_a_blob(blob_name, uploaded_file.getvalue())
-                    meta = {
-                        "usuario": st.session_state.usuario,
-                        "fecha": fecha_actual_madrid(),
-                        "comentario": comentario_input.strip(),
-                        "nombre_original": original_name
-                    }
-                    meta_str = json.dumps(meta, ensure_ascii=False)
-                    subir_a_blob(f"{blob_name}.meta.json", meta_str.encode("utf-8"))
-                
-                get_archivos_area.clear()
-                st.success(f"✅ Archivo subido.")
-                # 3. Incrementamos el contador para cambiar la key y forzar el reseteo
-                st.session_state.uploader_key_counter += 1
-                st.rerun()
+            # Lógica para subir un archivo nuevo (AHORA AUTOMÁTICA)
+            with st.spinner("Subiendo archivo..."):
+                timestamp_fn = datetime.now(pytz.timezone("Europe/Madrid")).strftime("%Y%m%d-%H%M%S")
+                safe_filename = f"{timestamp_fn}_{original_name}"
+                blob_name = f"{azure_prefix}{safe_filename}"
+                subir_a_blob(blob_name, uploaded_file.getvalue())
+                meta = {
+                    "usuario": st.session_state.usuario,
+                    "fecha": fecha_actual_madrid(),
+                    "comentario": comentario_input.strip(),
+                    "nombre_original": original_name
+                }
+                meta_str = json.dumps(meta, ensure_ascii=False)
+                subir_a_blob(f"{blob_name}.meta.json", meta_str.encode("utf-8"))
+            
+            get_archivos_area.clear()
+            st.success(f"✅ Archivo '{original_name}' subido.")
+            
+            # Incrementamos la key para forzar el reseteo del uploader
+            st.session_state.uploader_key_counter += 1
+            st.rerun()
 
 def render_file_display(archivos, search_query, azure_prefix):
     """Dibuja la cuadrícula de archivos filtrados y ordenados."""
