@@ -150,7 +150,7 @@ def fecha_actual_madrid():
 
 # --- FUNCIONES DE RENDERIZADO DE PÁGINAS ---
 
-def render_login_page(cookies):
+def render_login_page():
     """Dibuja toda la interfaz de la página de login y recuperación."""
     st.markdown("""<style>[data-testid="stSidebar"], [data-testid="collapsedControl"] {display: none;}</style>""", unsafe_allow_html=True)
 
@@ -219,7 +219,7 @@ def render_password_reset_page(token, serializer):
     except BadSignature:
         st.error("❌ Enlace inválido. Asegúrate de copiarlo completo desde tu correo.")
 
-def render_main_app(cookies):
+def render_main_app():
     """Dibuja toda la interfaz de la aplicación principal una vez logueado."""
     st.sidebar.markdown("&nbsp;")
     logo_path = Path("assets/logo.png")
