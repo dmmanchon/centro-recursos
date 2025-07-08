@@ -168,7 +168,7 @@ def logout():
         unsafe_allow_html=True
     )
 
-    # Establecer un flag en la sesión de Streamlit para indicar que el usuario ha cerrado sesión
+    # Establecer el flag de cierre de sesión en la sesión de Streamlit
     st.session_state.logout_done = True
 
     # Redirigir al usuario a la página de inicio de sesión
@@ -519,24 +519,17 @@ token = params.get("token")
 action = params.get("action")
 
 if action == "logout":
-    st.session_state.logout_done = True
-    for k in ["usuario", "area", "permisos", "rol"]:
-        if cookies.get(k):
-            del cookies[k]
-    cookies.save()
-    st.query_params.clear()
-    st.rerun()
+    logout()
 
 elif token:
     serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
     render_password_reset_page(token, serializer)
 
-
-elif st.session_state.get("logout_done"):
+# Comprobar si el usuario ha cerrado sesión
+if st.session_state.get("logout_done", False):
     render_login_page(cookies)
-    st.stop()
-
 else:
+    # Intentar restaurar la sesión del usuario a partir de las cookies
     if "usuario" not in st.session_state and cookies.get("usuario"):
         st.session_state.usuario = cookies.get("usuario")
         st.session_state.area = cookies.get("area")
@@ -544,13 +537,8 @@ else:
         st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
         st.session_state.rol = cookies.get("rol")
 
+    # Si se ha restaurado la sesión, renderizar la aplicación principal
     if "usuario" in st.session_state:
         render_main_app(cookies)
     else:
         render_login_page(cookies)
-
-# Al inicio de la aplicación, comprobar si el usuario ha cerrado sesión
-if st.session_state.get("logout_done", False):
-    render_login_page(cookies)
-else:
-    render_main_app(cookies)
