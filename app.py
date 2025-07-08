@@ -15,9 +15,7 @@ from email.mime.text import MIMEText
 import bcrypt
 from azure.storage.blob import BlobServiceClient
 from io import BytesIO
-from streamlit_cookies_manager import EncryptedCookieManager
 from itsdangerous.exc import SignatureExpired, BadSignature
-import urllib.parse
 
 # --- CONSTANTES Y CONFIGURACIÓN INICIAL ---
 TIPOS_ARCHIVO = [
@@ -155,7 +153,7 @@ def fecha_actual_madrid():
 def render_login_page(cookies):
     """Dibuja toda la interfaz de la página de login y recuperación."""
     st.markdown("""<style>[data-testid="stSidebar"], [data-testid="collapsedControl"] {display: none;}</style>""", unsafe_allow_html=True)
-    
+
     logo_path = Path("assets/logo.png")
     if logo_path.exists():
         logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
@@ -174,20 +172,10 @@ def render_login_page(cookies):
                 usuarios_df = cargar_usuarios_desde_blob()
                 user_row = usuarios_df[usuarios_df["mail"] == usuario_input]
                 if not user_row.empty and bcrypt.checkpw(contrasena_input.encode(), user_row.iloc[0]["contraseña"].encode()):
-                    # ... (todo tu código para establecer st.session_state y las cookies va aquí) ...
                     st.session_state.usuario = user_row.iloc[0]["usuario"]
                     st.session_state.area = user_row.iloc[0]["area"]
                     st.session_state.permisos = user_row.iloc[0]["permisos"].split(",")
-                    st.session_state.rol = user_row.iloc[0]["rol"]
-                    
-                    cookies["usuario"] = st.session_state.usuario
-                    cookies["area"] = st.session_state.area
-                    cookies["permisos"] = ",".join(st.session_state.permisos)
-                    cookies["rol"] = st.session_state.rol
-                    cookies.save()
-
-                    # Limpiamos cualquier parámetro residual en la URL (como ?token=...)
-                    st.query_params.clear()
+                    st.session_state.rol = user_row.iloc[0]["rol"]                    
                     st.rerun()
                 else:
                     st.error("Credenciales incorrectas")
@@ -232,42 +220,52 @@ def render_password_reset_page(token, serializer):
         st.error("❌ Enlace inválido. Asegúrate de copiarlo completo desde tu correo.")
 
 def render_main_app(cookies):
-    """
-    VERSIÓN DE DEPURACIÓN RADICAL:
-    Esta función no carga datos de Azure para aislar el punto de error.
-    """
-    # 1. Si ves este título, el login y el control principal FUNCIONAN.
-    st.title("✅ Página de Depuración - Sesión Iniciada")
-    st.success("Si estás viendo esta página, significa que la lógica de inicio y cierre de sesión es correcta.")
-    st.warning("La interfaz normal de la aplicación se ha desactivado temporalmente para localizar un error en las funciones que cargan los archivos y enlaces desde Azure.")
-    
-    # 2. Mostramos los datos de sesión para confirmar que son correctos.
-    st.header("Datos de la Sesión Actual")
-    st.write(st.session_state)
-    
-    # 3. Mantenemos la lógica de la barra lateral para verla funcionar.
-    st.sidebar.success(f"Sesión iniciada como: {st.session_state.usuario}")
+    """Dibuja toda la interfaz de la aplicación principal una vez logueado."""
+    st.sidebar.markdown("&nbsp;")
+    logo_path = Path("assets/logo.png")
+    if logo_path.exists():
+        logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
+        st.sidebar.markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;'><span style='font-weight: bold; font-size: 3em;'>25/26</span><img src='data:image/png;base64,{logo_base64}' style='height: 120px;' /></div>", unsafe_allow_html=True)
+
     if st.sidebar.button("Cerrar sesión"):
-        cookies["usuario"] = "logged_out"
-        cookies.save()
+        st.session_state.clear()
         st.rerun()
 
-    # 4. Comprobamos la lógica del 'AREA_MAP' de forma segura.
-    st.header("Comprobación del Área")
-    try:
-        if st.session_state.area == "todas":
-            area = st.sidebar.selectbox("Selecciona área", list(AREA_MAP.keys()))
-        else:
-            area = st.session_state.area
-        
-        azure_prefix = AREA_MAP[area] + "/"
-        st.info(f"El cálculo del área y el prefijo de Azure (`{azure_prefix}`) funcionan correctamente.")
-    except Exception as e:
-        st.error(f"¡ERROR DETECTADO AQUÍ! El problema está en la lógica de selección de área o en AREA_MAP: {e}")
+    st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
+    st.sidebar.success(f"{st.session_state.usuario} ({st.session_state.rol})")
 
-    st.header("Simulación de Carga de Datos")
-    st.info("Las funciones `get_enlaces` y `get_archivos_area` NO han sido llamadas.")
-    st.info("Si has llegado hasta aquí, el error está 100% confirmado en una de esas dos funciones.")
+    if st.session_state.area == "todas":
+        st.sidebar.markdown("---")
+        area = st.sidebar.selectbox("Selecciona área", list(AREA_MAP.keys()))
+    else:
+        area = st.session_state.area
+    
+    azure_prefix = AREA_MAP[area] + "/"
+    enlaces_lista = get_enlaces(azure_prefix)
+    archivos_sidebar = get_archivos_area(azure_prefix)
+    
+    if archivos_sidebar:
+        archivos_sidebar.sort(key=lambda x: x["last_modified"], reverse=True)
+    
+    with st.sidebar.expander(f"📂 Archivos disponibles: {len(archivos_sidebar)}"):
+        for archivo_info in archivos_sidebar:
+            visible_name = archivo_info["meta"].get("nombre_original", Path(archivo_info["blob_name"]).name)
+            st.markdown(f"- {icono_archivo(visible_name)} [{visible_name}](#{generar_id_archivo(visible_name)})")
+    
+    with st.sidebar.expander(f"🔗 Enlaces compartidos: {len(enlaces_lista)}"):
+        for nombre, enlace in enlaces_lista:
+            st.markdown(f"- [{nombre}]({enlace})")
+
+    # --- INTERFAZ PRINCIPAL ---
+    st.markdown(f"## {area}")
+    st.markdown("### 🔎 Buscar archivos")
+    search_query = st.text_input("Buscar por nombre o descripción").lower()
+
+    if "subir" in st.session_state.permisos:
+        render_upload_section(azure_prefix)
+
+    render_file_display(archivos_sidebar, search_query, azure_prefix)
+    render_links_section(enlaces_lista, azure_prefix)
 
 def render_upload_section(azure_prefix):
     """Dibuja la sección para subir archivos con reseteo de estado mediante una key dinámica."""
@@ -469,52 +467,17 @@ def render_links_section(enlaces, azure_prefix):
         st.info("No hay enlaces compartidos en esta área.")
 
 
-# --- BLOQUE DE CONTROL PRINCIPAL ---
+# --- BLOQUE DE CONTROL PRINCIPAL (SIN COOKIES) ---
 
 st.set_page_config(page_title="Centro de Recursos Colaborativo", layout="wide", initial_sidebar_state="expanded")
 
-cookies = EncryptedCookieManager(password=st.secrets["SECRET_KEY"], prefix="app_")
-if not cookies.ready():
-    st.stop()
+token = st.query_params.get("token")
+if token:
+    serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
+    render_password_reset_page(token, serializer)
 
-# -------------------------------------------------------------------
-# Lógica de Control Simplificada y Unificada
-# -------------------------------------------------------------------
+elif "usuario" in st.session_state:
+    render_main_app()
 
-# Se define una variable para rastrear el estado de autenticación.
-authenticated = False
-
-# PRIORIDAD 1: Comprobar si ya existe una sesión de servidor válida (más fiable).
-if "usuario" in st.session_state and st.session_state.get("usuario") != "logged_out":
-    authenticated = True
-
-# PRIORIDAD 2: Si no hay sesión, intentar recuperarla desde una cookie válida.
-elif cookies.get("usuario") and cookies.get("usuario") != "logged_out":
-    # La cookie es válida, así que la usamos para reconstruir la sesión.
-    # NO se necesita un rerun aquí.
-    st.session_state.usuario = cookies.get("usuario")
-    st.session_state.area = cookies.get("area")
-    permisos_cookie = cookies.get("permisos")
-    st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
-    st.session_state.rol = cookies.get("rol")
-    authenticated = True
-
-# Una vez determinado el estado, se decide qué página mostrar.
-if authenticated:
-    # Si el usuario está autenticado, por sesión o por cookie, se muestra la app.
-    render_main_app(cookies)
 else:
-    # Si no está autenticado, puede ser un reseteo o un login normal.
-    token = st.query_params.get("token")
-    if token:
-        # Se muestra la página de reseteo de contraseña.
-        serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
-        render_password_reset_page(token, serializer)
-    else:
-        # Por defecto, se muestra la página de login.
-        # Se limpia todo para asegurar un estado inicial limpio.
-        st.session_state.clear()
-        for k in list(cookies.keys()):
-            del cookies[k]
-        cookies.save()
-        render_login_page(cookies)
+    render_login_page()
