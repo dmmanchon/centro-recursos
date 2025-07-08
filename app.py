@@ -240,11 +240,8 @@ def render_main_app(cookies):
         st.sidebar.markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;'><span style='font-weight: bold; font-size: 3em;'>25/26</span><img src='data:image/png;base64,{logo_base64}' style='height: 120px;' /></div>", unsafe_allow_html=True)
 
     if st.sidebar.button("Cerrar sesión"):
-        # Solo envenenamos la cookie para indicar la intención de logout.
         cookies["usuario"] = "logged_out"
         cookies.save()
-        
-        # Forzamos una recarga para que el bloque principal re-evalúe el estado.
         st.rerun()
 
     st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
@@ -256,7 +253,25 @@ def render_main_app(cookies):
     else:
         area = st.session_state.area
     
-    azure_prefix = AREA_MAP[area] + "/"
+    # --- INICIO DE LA CORRECCIÓN ---
+    # Se añade un bloque try-except para capturar errores de configuración de área.
+    try:
+        azure_prefix = AREA_MAP[area] + "/"
+    except KeyError:
+        st.error(f"""
+            **❌ Error de Configuración Detectado**
+
+            La aplicación no pudo continuar porque el área asignada a tu usuario no es válida.
+            
+            - **Tu Área según el fichero de usuarios:** `{area}`
+            - **Áreas Válidas permitidas en el código:** `{', '.join(AREA_MAP.keys())}`
+
+            Por favor, contacta al administrador para que corrija tu área en el fichero `usuarios.xlsx`.
+            El valor en la columna 'area' debe ser **exactamente** uno de los valores válidos listados.
+            """)
+        st.stop() # Detiene la ejecución para evitar más errores.
+    # --- FIN DE LA CORRECIÓN ---
+    
     enlaces_lista = get_enlaces(azure_prefix)
     archivos_sidebar = get_archivos_area(azure_prefix)
     
@@ -272,7 +287,6 @@ def render_main_app(cookies):
         for nombre, enlace in enlaces_lista:
             st.markdown(f"- [{nombre}]({enlace})")
 
-    # --- INTERFAZ PRINCIPAL ---
     st.markdown(f"## {area}")
     st.markdown("### 🔎 Buscar archivos")
     search_query = st.text_input("Buscar por nombre o descripción").lower()
@@ -282,6 +296,7 @@ def render_main_app(cookies):
 
     render_file_display(archivos_sidebar, search_query, azure_prefix)
     render_links_section(enlaces_lista, azure_prefix)
+
 
 def render_upload_section(azure_prefix):
     """Dibuja la sección para subir archivos con reseteo de estado mediante una key dinámica."""
