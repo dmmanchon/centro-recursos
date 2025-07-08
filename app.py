@@ -232,91 +232,42 @@ def render_password_reset_page(token, serializer):
         st.error("❌ Enlace inválido. Asegúrate de copiarlo completo desde tu correo.")
 
 def render_main_app(cookies):
-    """Dibuja toda la interfaz de la aplicación principal una vez logueado."""
-    # --- INICIO DE DEPURACIÓN ---
-    st.info("PUNTO DE CONTROL 1: Entrando en `render_main_app`.")
-    st.write("Datos de sesión actuales:", st.session_state)
-    # --- FIN DE DEPURACIÓN ---
-
-    st.sidebar.markdown("&nbsp;")
-    logo_path = Path("assets/logo.png")
-    if logo_path.exists():
-        logo_base64 = base64.b64encode(logo_path.read_bytes()).decode("utf-8")
-        st.sidebar.markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;'><span style='font-weight: bold; font-size: 3em;'>25/26</span><img src='data:image/png;base64,{logo_base64}' style='height: 120px;' /></div>", unsafe_allow_html=True)
-
+    """
+    VERSIÓN DE DEPURACIÓN RADICAL:
+    Esta función no carga datos de Azure para aislar el punto de error.
+    """
+    # 1. Si ves este título, el login y el control principal FUNCIONAN.
+    st.title("✅ Página de Depuración - Sesión Iniciada")
+    st.success("Si estás viendo esta página, significa que la lógica de inicio y cierre de sesión es correcta.")
+    st.warning("La interfaz normal de la aplicación se ha desactivado temporalmente para localizar un error en las funciones que cargan los archivos y enlaces desde Azure.")
+    
+    # 2. Mostramos los datos de sesión para confirmar que son correctos.
+    st.header("Datos de la Sesión Actual")
+    st.write(st.session_state)
+    
+    # 3. Mantenemos la lógica de la barra lateral para verla funcionar.
+    st.sidebar.success(f"Sesión iniciada como: {st.session_state.usuario}")
     if st.sidebar.button("Cerrar sesión"):
         cookies["usuario"] = "logged_out"
         cookies.save()
         st.rerun()
 
-    st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
-    st.sidebar.success(f"{st.session_state.usuario} ({st.session_state.rol})")
-
-    # --- INICIO DE DEPURACIÓN ---
-    st.info(f"PUNTO DE CONTROL 2: El área del usuario es: `{st.session_state.area}`.")
-    # --- FIN DE DEPURACIÓN ---
-
-    if st.session_state.area == "todas":
-        st.sidebar.markdown("---")
-        area = st.sidebar.selectbox("Selecciona área", list(AREA_MAP.keys()))
-    else:
-        area = st.session_state.area
-    
-    # --- INICIO DE DEPURACIÓN ---
-    st.info(f"PUNTO DE CONTROL 3: El área seleccionada para mostrar es: `{area}`.")
-    # --- FIN DE DEPURACIÓN ---
-    
+    # 4. Comprobamos la lógica del 'AREA_MAP' de forma segura.
+    st.header("Comprobación del Área")
     try:
+        if st.session_state.area == "todas":
+            area = st.sidebar.selectbox("Selecciona área", list(AREA_MAP.keys()))
+        else:
+            area = st.session_state.area
+        
         azure_prefix = AREA_MAP[area] + "/"
-        # --- INICIO DE DEPURACIÓN ---
-        st.info("PUNTO DE CONTROL 4: `azure_prefix` calculado correctamente.")
-        # --- FIN DE DEPURACIÓN ---
-    except KeyError:
-        st.error(f"""
-            **❌ Error de Configuración Detectado**
+        st.info(f"El cálculo del área y el prefijo de Azure (`{azure_prefix}`) funcionan correctamente.")
+    except Exception as e:
+        st.error(f"¡ERROR DETECTADO AQUÍ! El problema está en la lógica de selección de área o en AREA_MAP: {e}")
 
-            La aplicación no pudo continuar porque el área asignada a tu usuario no es válida.
-            
-            - **Tu Área según el fichero de usuarios:** `{area}`
-            - **Áreas Válidas permitidas en el código:** `{', '.join(AREA_MAP.keys())}`
-
-            Por favor, contacta al administrador para que corrija tu área en el fichero `usuarios.xlsx`.
-            El valor en la columna 'area' debe ser **exactamente** uno de los valores válidos listados.
-            """)
-        st.stop()
-    
-    enlaces_lista = get_enlaces(azure_prefix)
-    archivos_sidebar = get_archivos_area(azure_prefix)
-    
-    # --- INICIO DE DEPURACIÓN ---
-    st.info("PUNTO DE CONTROL 5: Listas de archivos y enlaces obtenidas.")
-    # --- FIN DE DEPURACIÓN ---
-    
-    if archivos_sidebar:
-        archivos_sidebar.sort(key=lambda x: x["last_modified"], reverse=True)
-    
-    with st.sidebar.expander(f"📂 Archivos disponibles: {len(archivos_sidebar)}"):
-        for archivo_info in archivos_sidebar:
-            visible_name = archivo_info["meta"].get("nombre_original", Path(archivo_info["blob_name"]).name)
-            st.markdown(f"- {icono_archivo(visible_name)} [{visible_name}](#{generar_id_archivo(visible_name)})")
-    
-    with st.sidebar.expander(f"🔗 Enlaces compartidos: {len(enlaces_lista)}"):
-        for nombre, enlace in enlaces_lista:
-            st.markdown(f"- [{nombre}]({enlace})")
-
-    st.markdown(f"## {area}")
-    st.markdown("### 🔎 Buscar archivos")
-    search_query = st.text_input("Buscar por nombre o descripción").lower()
-
-    if "subir" in st.session_state.permisos:
-        render_upload_section(azure_prefix)
-
-    render_file_display(archivos_sidebar, search_query, azure_prefix)
-    render_links_section(enlaces_lista, azure_prefix)
-    
-    # --- INICIO DE DEPURACIÓN ---
-    st.info("PUNTO DE CONTROL 6: Fin de `render_main_app` alcanzado.")
-    # --- FIN DE DEPURACIÓN ---
+    st.header("Simulación de Carga de Datos")
+    st.info("Las funciones `get_enlaces` y `get_archivos_area` NO han sido llamadas.")
+    st.info("Si has llegado hasta aquí, el error está 100% confirmado en una de esas dos funciones.")
 
 def render_upload_section(azure_prefix):
     """Dibuja la sección para subir archivos con reseteo de estado mediante una key dinámica."""
