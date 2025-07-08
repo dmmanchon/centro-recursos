@@ -168,6 +168,9 @@ def logout():
         unsafe_allow_html=True
     )
 
+    # Establecer un flag en la sesión de Streamlit para indicar que el usuario ha cerrado sesión
+    st.session_state.logout_done = True
+
     # Redirigir al usuario a la página de inicio de sesión
     st.experimental_rerun()
 
@@ -546,3 +549,8 @@ else:
     else:
         render_login_page(cookies)
 
+# Al inicio de la aplicación, comprobar si el usuario ha cerrado sesión
+if st.session_state.get("logout_done", False):
+    render_login_page(cookies)
+else:
+    render_main_app(cookies)
