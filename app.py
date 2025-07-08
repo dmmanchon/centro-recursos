@@ -492,39 +492,38 @@ if not cookies.ready():
     st.stop()
 
 # -------------------------------------------------------------------
-# Lógica de Control Secuencial
+# Lógica de Control con Prioridades Corregidas
 # -------------------------------------------------------------------
 
-# PRIORIDAD 1: Comprobar si hay un token de reseteo de contraseña en la URL.
-token = st.query_params.get("token")
-if token:
+# PRIORIDAD 1: Comprobar si ya existe una sesión de servidor válida.
+# Esto es lo más fiable después de un inicio de sesión.
+if "usuario" in st.session_state and st.session_state.get("usuario") != "logged_out":
+    render_main_app(cookies)
+
+# PRIORIDAD 2: Comprobar si se está intentando restablecer una contraseña.
+elif st.query_params.get("token"):
+    token = st.query_params.get("token")
     serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
     render_password_reset_page(token, serializer)
 
-# PRIORIDAD 2: Comprobar si existe una cookie de sesión válida.
+# PRIORIDAD 3: Si no hay sesión, intentar recuperarla desde una cookie válida.
 elif cookies.get("usuario") and cookies.get("usuario") != "logged_out":
-    # Si la cookie es válida, el usuario debe estar logueado.
+    # La cookie es válida, así que la usamos para reconstruir la sesión del servidor.
+    st.session_state.usuario = cookies.get("usuario")
+    st.session_state.area = cookies.get("area")
+    permisos_cookie = cookies.get("permisos")
+    st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
+    st.session_state.rol = cookies.get("rol")
     
-    # Sincronizamos la sesión del servidor con la cookie si es necesario.
-    if "usuario" not in st.session_state:
-        st.session_state.usuario = cookies.get("usuario")
-        st.session_state.area = cookies.get("area")
-        permisos_cookie = cookies.get("permisos")
-        st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
-        st.session_state.rol = cookies.get("rol")
-    
-    # Mostramos la aplicación principal.
-    render_main_app(cookies)
+    # Forzamos una recarga. En la siguiente ejecución, se cumplirá la PRIORIDAD 1.
+    st.rerun()
 
-# PRIORIDAD 3: Si no se cumplen las condiciones anteriores, el usuario está deslogueado.
+# PRIORIDAD 4: Si nada de lo anterior se cumple, el usuario está deslogueado.
 else:
-    # Este es el estado final para un usuario sin sesión o que acaba de cerrar sesión.
-    
-    # Limpiamos el estado de la sesión en el servidor para asegurar que no queden datos.
+    # Limpiamos todo para asegurar un estado inicial limpio.
     st.session_state.clear()
     
-    # Volvemos a intentar eliminar TODAS las cookies para limpiar el navegador.
-    # Es importante hacerlo aquí para manejar el caso del refresco de página.
+    # Intentamos eliminar todas las cookies del navegador.
     for k in list(cookies.keys()):
         del cookies[k]
     cookies.save()
