@@ -492,41 +492,43 @@ if not cookies.ready():
     st.stop()
 
 # -------------------------------------------------------------------
-# Lógica de Control con Prioridades Corregidas
+# Lógica de Control Simplificada y Unificada
 # -------------------------------------------------------------------
 
-# PRIORIDAD 1: Comprobar si ya existe una sesión de servidor válida.
-# Esto es lo más fiable después de un inicio de sesión.
+# Se define una variable para rastrear el estado de autenticación.
+authenticated = False
+
+# PRIORIDAD 1: Comprobar si ya existe una sesión de servidor válida (más fiable).
 if "usuario" in st.session_state and st.session_state.get("usuario") != "logged_out":
-    render_main_app(cookies)
+    authenticated = True
 
-# PRIORIDAD 2: Comprobar si se está intentando restablecer una contraseña.
-elif st.query_params.get("token"):
-    token = st.query_params.get("token")
-    serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
-    render_password_reset_page(token, serializer)
-
-# PRIORIDAD 3: Si no hay sesión, intentar recuperarla desde una cookie válida.
+# PRIORIDAD 2: Si no hay sesión, intentar recuperarla desde una cookie válida.
 elif cookies.get("usuario") and cookies.get("usuario") != "logged_out":
-    # La cookie es válida, así que la usamos para reconstruir la sesión del servidor.
+    # La cookie es válida, así que la usamos para reconstruir la sesión.
+    # NO se necesita un rerun aquí.
     st.session_state.usuario = cookies.get("usuario")
     st.session_state.area = cookies.get("area")
     permisos_cookie = cookies.get("permisos")
     st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
     st.session_state.rol = cookies.get("rol")
-    
-    # Forzamos una recarga. En la siguiente ejecución, se cumplirá la PRIORIDAD 1.
-    st.rerun()
+    authenticated = True
 
-# PRIORIDAD 4: Si nada de lo anterior se cumple, el usuario está deslogueado.
+# Una vez determinado el estado, se decide qué página mostrar.
+if authenticated:
+    # Si el usuario está autenticado, por sesión o por cookie, se muestra la app.
+    render_main_app(cookies)
 else:
-    # Limpiamos todo para asegurar un estado inicial limpio.
-    st.session_state.clear()
-    
-    # Intentamos eliminar todas las cookies del navegador.
-    for k in list(cookies.keys()):
-        del cookies[k]
-    cookies.save()
-    
-    # Mostramos la página de inicio de sesión.
-    render_login_page(cookies)
+    # Si no está autenticado, puede ser un reseteo o un login normal.
+    token = st.query_params.get("token")
+    if token:
+        # Se muestra la página de reseteo de contraseña.
+        serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
+        render_password_reset_page(token, serializer)
+    else:
+        # Por defecto, se muestra la página de login.
+        # Se limpia todo para asegurar un estado inicial limpio.
+        st.session_state.clear()
+        for k in list(cookies.keys()):
+            del cookies[k]
+        cookies.save()
+        render_login_page(cookies)
