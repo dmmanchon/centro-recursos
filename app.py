@@ -235,6 +235,7 @@ def render_main_app(cookies):
     """Dibuja toda la interfaz de la aplicación principal una vez logueado."""
     # --- INICIO DE DEPURACIÓN ---
     st.info("PUNTO DE CONTROL 1: Entrando en `render_main_app`.")
+    st.write("Datos de sesión actuales:", st.session_state)
     # --- FIN DE DEPURACIÓN ---
 
     st.sidebar.markdown("&nbsp;")
@@ -267,6 +268,9 @@ def render_main_app(cookies):
     
     try:
         azure_prefix = AREA_MAP[area] + "/"
+        # --- INICIO DE DEPURACIÓN ---
+        st.info("PUNTO DE CONTROL 4: `azure_prefix` calculado correctamente.")
+        # --- FIN DE DEPURACIÓN ---
     except KeyError:
         st.error(f"""
             **❌ Error de Configuración Detectado**
@@ -283,6 +287,10 @@ def render_main_app(cookies):
     
     enlaces_lista = get_enlaces(azure_prefix)
     archivos_sidebar = get_archivos_area(azure_prefix)
+    
+    # --- INICIO DE DEPURACIÓN ---
+    st.info("PUNTO DE CONTROL 5: Listas de archivos y enlaces obtenidas.")
+    # --- FIN DE DEPURACIÓN ---
     
     if archivos_sidebar:
         archivos_sidebar.sort(key=lambda x: x["last_modified"], reverse=True)
@@ -305,6 +313,10 @@ def render_main_app(cookies):
 
     render_file_display(archivos_sidebar, search_query, azure_prefix)
     render_links_section(enlaces_lista, azure_prefix)
+    
+    # --- INICIO DE DEPURACIÓN ---
+    st.info("PUNTO DE CONTROL 6: Fin de `render_main_app` alcanzado.")
+    # --- FIN DE DEPURACIÓN ---
 
 def render_upload_section(azure_prefix):
     """Dibuja la sección para subir archivos con reseteo de estado mediante una key dinámica."""
