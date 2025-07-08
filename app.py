@@ -19,7 +19,6 @@ from streamlit_cookies_manager import EncryptedCookieManager
 from itsdangerous.exc import SignatureExpired, BadSignature
 import urllib.parse
 
-
 # --- CONSTANTES Y CONFIGURACIÓN INICIAL ---
 TIPOS_ARCHIVO = [
     "pdf", "doc", "docx", "ppt", "pptx",
@@ -151,29 +150,6 @@ def icono_archivo(nombre_archivo):
 def fecha_actual_madrid():
     return datetime.now(pytz.timezone("Europe/Madrid")).strftime("%Y-%m-%d %H:%M:%S")
 
-# Función para manejar el cierre de sesión
-def logout():
-    # Eliminar los datos de usuario de la sesión de Streamlit
-    for key in ["usuario", "area", "permisos", "rol"]:
-        if key in st.session_state:
-            del st.session_state[key]
-
-    # Enviar una respuesta HTTP con un encabezado Set-Cookie para borrar la cookie del navegador
-    st.markdown(
-        f"""
-        <script>
-            document.cookie = 'app_user=; expires={(datetime.now(pytz.timezone('Europe/Madrid')) + timedelta(seconds=1)).strftime('%a, %d %b %Y %H:%M:%S GMT')}; path=/';
-        </script>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # Establecer el flag de cierre de sesión en la sesión de Streamlit
-    st.session_state.logout_done = True
-
-    # Redirigir al usuario a la página de inicio de sesión
-    st.experimental_rerun()
-
 # --- FUNCIONES DE RENDERIZADO DE PÁGINAS ---
 
 def render_login_page(cookies):
@@ -198,6 +174,7 @@ def render_login_page(cookies):
                 usuarios_df = cargar_usuarios_desde_blob()
                 user_row = usuarios_df[usuarios_df["mail"] == usuario_input]
                 if not user_row.empty and bcrypt.checkpw(contrasena_input.encode(), user_row.iloc[0]["contraseña"].encode()):
+                    # ... (código para establecer st.session_state y las cookies) ...
                     st.session_state.usuario = user_row.iloc[0]["usuario"]
                     st.session_state.area = user_row.iloc[0]["area"]
                     st.session_state.permisos = user_row.iloc[0]["permisos"].split(",")
@@ -208,6 +185,11 @@ def render_login_page(cookies):
                     cookies["permisos"] = ",".join(st.session_state.permisos)
                     cookies["rol"] = st.session_state.rol
                     cookies.save()
+
+                    # -- AÑADIR ESTA LÍNEA --
+                    # Al iniciar sesión, limpiamos la URL para salir del estado "logout".
+                    st.query_params.clear()
+                    
                     st.rerun()
                 else:
                     st.error("Credenciales incorrectas")
@@ -260,15 +242,9 @@ def render_main_app(cookies):
         st.sidebar.markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;'><span style='font-weight: bold; font-size: 3em;'>25/26</span><img src='data:image/png;base64,{logo_base64}' style='height: 120px;' /></div>", unsafe_allow_html=True)
 
     if st.sidebar.button("Cerrar sesión"):
-        for k in ["usuario", "area", "permisos", "rol"]:
-            if cookies.get(k): del cookies[k]
-        cookies.save()
-        st.session_state.clear()
-        st.query_params.update({"action": "logout"}) 
+        # Solo establecemos el parámetro. No se limpia nada aquí.
+        st.query_params["action"] = "logout"
         st.rerun()
-
-    if st.button("Cerrar sesión"):
-        logout()
 
     st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
     st.sidebar.success(f"{st.session_state.usuario} ({st.session_state.rol})")
@@ -515,30 +491,43 @@ if not cookies.ready():
     st.stop()
 
 params = st.query_params
-token = params.get("token")
 action = params.get("action")
+token = params.get("token")
 
+# PRIORIDAD 1: Si la URL dice "logout", el estado es LOGGED OUT. Punto.
 if action == "logout":
-    logout()
+    # Limpiamos el estado de la sesión y tratamos de borrar la cookie.
+    st.session_state.clear()
+    for k in ["usuario", "area", "permisos", "rol"]:
+        if cookies.get(k):
+            del cookies[k]
+    cookies.save()
+    
+    # Mostramos la página de login y nos detenemos.
+    # NO borramos el parámetro de la URL. La URL es ahora el estado "sesión cerrada".
+    render_login_page(cookies)
+    st.stop()
 
+# PRIORIDAD 2: Reseteo de contraseña.
 elif token:
     serializer = URLSafeTimedSerializer(st.secrets["SECRET_KEY"])
     render_password_reset_page(token, serializer)
 
-# Comprobar si el usuario ha cerrado sesión
-if st.session_state.get("logout_done", False):
-    render_login_page(cookies)
+# PRIORIDAD 3: Flujo normal.
 else:
-    # Intentar restaurar la sesión del usuario a partir de las cookies
+    # Si no hay sesión, intentamos restaurarla desde la cookie.
     if "usuario" not in st.session_state and cookies.get("usuario"):
         st.session_state.usuario = cookies.get("usuario")
         st.session_state.area = cookies.get("area")
         permisos_cookie = cookies.get("permisos")
         st.session_state.permisos = permisos_cookie.split(",") if permisos_cookie else []
         st.session_state.rol = cookies.get("rol")
+        # Recargamos para que el resto del script se ejecute ya con la sesión activa.
+        st.rerun()
 
-    # Si se ha restaurado la sesión, renderizar la aplicación principal
+    # Renderizamos según el estado de la sesión.
     if "usuario" in st.session_state:
         render_main_app(cookies)
     else:
         render_login_page(cookies)
+
