@@ -233,6 +233,10 @@ def render_password_reset_page(token, serializer):
 
 def render_main_app(cookies):
     """Dibuja toda la interfaz de la aplicación principal una vez logueado."""
+    # --- INICIO DE DEPURACIÓN ---
+    st.info("PUNTO DE CONTROL 1: Entrando en `render_main_app`.")
+    # --- FIN DE DEPURACIÓN ---
+
     st.sidebar.markdown("&nbsp;")
     logo_path = Path("assets/logo.png")
     if logo_path.exists():
@@ -247,14 +251,20 @@ def render_main_app(cookies):
     st.sidebar.markdown("### 🧑‍💼 Sesión iniciada")
     st.sidebar.success(f"{st.session_state.usuario} ({st.session_state.rol})")
 
+    # --- INICIO DE DEPURACIÓN ---
+    st.info(f"PUNTO DE CONTROL 2: El área del usuario es: `{st.session_state.area}`.")
+    # --- FIN DE DEPURACIÓN ---
+
     if st.session_state.area == "todas":
         st.sidebar.markdown("---")
         area = st.sidebar.selectbox("Selecciona área", list(AREA_MAP.keys()))
     else:
         area = st.session_state.area
     
-    # --- INICIO DE LA CORRECCIÓN ---
-    # Se añade un bloque try-except para capturar errores de configuración de área.
+    # --- INICIO DE DEPURACIÓN ---
+    st.info(f"PUNTO DE CONTROL 3: El área seleccionada para mostrar es: `{area}`.")
+    # --- FIN DE DEPURACIÓN ---
+    
     try:
         azure_prefix = AREA_MAP[area] + "/"
     except KeyError:
@@ -269,8 +279,7 @@ def render_main_app(cookies):
             Por favor, contacta al administrador para que corrija tu área en el fichero `usuarios.xlsx`.
             El valor en la columna 'area' debe ser **exactamente** uno de los valores válidos listados.
             """)
-        st.stop() # Detiene la ejecución para evitar más errores.
-    # --- FIN DE LA CORRECIÓN ---
+        st.stop()
     
     enlaces_lista = get_enlaces(azure_prefix)
     archivos_sidebar = get_archivos_area(azure_prefix)
@@ -296,7 +305,6 @@ def render_main_app(cookies):
 
     render_file_display(archivos_sidebar, search_query, azure_prefix)
     render_links_section(enlaces_lista, azure_prefix)
-
 
 def render_upload_section(azure_prefix):
     """Dibuja la sección para subir archivos con reseteo de estado mediante una key dinámica."""
